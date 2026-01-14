@@ -1,0 +1,11 @@
+{
+    "markdown_file": "/mnt/chatchat/source_DATA_md/AILab_TOOL_docs.md",
+    "vector_database_store_dir": "/mnt/chatchat/DB_forth/dir2",
+    "database_URI": "/mnt/chatchat/DB_forth/dir2/5274c3dd_AILab_TOOL_docs/5274c3dd_AILab_TOOL_docs.db",
+    "DB_COLLECTION_NAME": "lcsw0617",
+    "CHUNK_SIZE": 1536,
+    "CHUNK_OVERLAP": 50,
+    "NUM_CHUNKS": 96,
+    "GLOBAL_DIMENSION": 1024,
+    "CHUNKING": "Re"
+}

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  chatapp:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    container_name: retrival-chatapp
+    volumes:
+      - ./chatapp:/chatapp
+    ports:
+      - "12100:8848"
+    networks:
+      - milvus
+    command: ["uv", "run", "/chatapp/rag_fusion_0808.py"]
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8848/health"] ## 忘记在容器里面装curl了，已经更新
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s  # 关键！容器启动后60秒才开始检查
+
+networks:
+  milvus:
+    external: true
+  default:
+    driver: bridge

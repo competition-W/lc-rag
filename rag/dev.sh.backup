@@ -1,0 +1,61 @@
+# 
+
+
+cd /mnt/omicshub/rag
+
+# 备份原文件
+cp dev.sh dev.sh.backup
+
+# 修改 Worker 启动命令
+cat > dev.sh <<'SCRIPT'
+#!/bin/bash
+# 文件: /mnt/omicshub/rag/dev.sh
+
+# 颜色定义
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# 检查虚拟环境
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+else
+    echo "⚠️ .venv not found, assuming packages are installed globally or in another env."
+fi
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}   RAG Service Control Panel   ${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo "1. 启动 API 服务 (FastAPI)"
+echo "2. 启动 Worker 服务 (Celery - 异步优化)"
+echo "3. 启动 Flower (Celery监控)"
+echo "q. 退出"
+echo ""
+read -p "请选择: " choice
+
+case $choice in
+    1)
+        echo -e "${GREEN}启动 API 服务...${NC}"
+        python main.py
+        ;;
+    2)
+        echo -e "${GREEN}启动 Celery Worker (异步模式)...${NC}"
+        # 添加 --pool=solo 支持 asyncio
+        celery -A tasks.celery_app worker --loglevel=info --pool=solo
+        ;;
+    3)
+        echo -e "${GREEN}启动 Flower 监控...${NC}"
+        celery -A tasks.celery_app flower --port=5555
+        ;;
+    q)
+        exit 0
+        ;;
+    *)
+        echo "无效选择"
+        ;;
+esac
+SCRIPT
+
+chmod +x dev.sh
+
+echo "✅ dev.sh 已更新（添加 --pool=solo）"

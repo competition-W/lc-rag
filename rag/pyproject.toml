@@ -1,0 +1,95 @@
+[project]
+name = "rag-document-service"
+version = "1.0.0"
+description = "RAG Document Processing Service with Multi-Department Access Control"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    # ==================== 基础依赖（来自您的项目） ====================
+    "numpy==2.1.0",
+    "pandas>=2.2.3",
+    "pillow>=11.2.1",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.4",
+    
+    # ==================== Web框架（来自您的项目） ====================
+    "fastapi>=0.115.13",
+    "uvicorn>=0.34.3",
+    "python-multipart>=0.0.20",
+    
+    # ==================== LlamaIndex核心（来自您的项目） ====================
+    "llama-index>=0.12.42",
+    "llama-index-core>=0.12.42",
+    "llama-index-embeddings-dashscope>=0.3.0",
+    "llama-index-embeddings-langchain>=0.3.0",
+    "llama-index-embeddings-openai>=0.3.1",
+    "llama-index-llms-dashscope>=0.4.0",
+    "llama-index-llms-openai>=0.4.7",
+    "llama-index-readers-file>=0.4.9",
+    "llama-index-vector-stores-milvus>=0.8.4",
+    "llama-index-postprocessor-dashscope-rerank>=0.3.0",
+    
+    # ==================== 向量数据库（来自您的项目） ====================
+    "pymilvus>=2.5.11",
+    
+    # ==================== 新增：异步任务 ====================
+    "celery>=5.3.4",
+    "redis>=5.0.1",
+    "flower>=2.0.1",  # Celery监控
+    
+    # ==================== 新增：对象存储 ====================
+    "minio>=7.2.3",
+    
+    # ==================== 新增：Excel处理（复用pandas） ====================
+    "openpyxl>=3.1.2",
+    "xlrd>=2.0.1",  # 支持老版本.xls
+    
+    # ==================== 新增：配置管理 ====================
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    
+    # ==================== 新增：日志 ====================
+    "loguru>=0.7.2",
+    
+    # ==================== 新增：工具库 ====================
+    "pypinyin>=0.52.0",  # 中文列名转拼音
+    "tenacity>=8.2.3",   # 重试机制
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.21.1",
+    "httpx>=0.25.2",
+    "black>=23.12.1",
+    "ruff>=0.1.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["api", "services", "tasks", "utils", "llm"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.21.1",
+    "httpx>=0.25.2",
+]
+
+# ⭐ 使用清华镜像（与您的配置一致）
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

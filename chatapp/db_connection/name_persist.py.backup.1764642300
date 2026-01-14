@@ -1,0 +1,38 @@
+'''
+做一个语料库名和它的index_store的persist dir的map
+还需要在api中做一个
+'''
+# 给定
+map_reduce : dict[str,str] = {
+        'ml_all_0822_Smtc':"./DB_forth/dir20",
+        'machinelearning_ALL_0819': "./DB_forth/dir19",
+    # 'TOOL_CN_0628_dir3': "./DB_forth/dir3", ##递归分割的
+    # 'TOOL_CN_0630_dir4': "./DB_forth/dir4",  ##语义分割的
+    # 'TOOL_EN_0628_dir5': "./DB_forth/dir5", ##英文Re+GPU索引
+    # 'shap_CN_0808': "./DB_forth/dir6",
+    # 'shap_CN_0808_Semantic': "./DB_forth/dir7",
+    # 'learn_curve_0710': "./DB_forth/dir8",
+    # 'Confusion_matrix_0717': "./dir9",
+    # 'cluster_dedim_0721': "./DB_forth/dir10",
+    # 'Confusion_matrix_0721_Re': "./DB_forth/dir11",
+}
+
+vlm_case : dict[str,str] = {
+    'shap_CN_0808': "/mnt/chatchat/DB_forth/dir6",
+    # 'shap_CN_0808_Semantic': "/mnt/chatchat/DB_forth/dir7",
+    'learn_curve_0710': "/mnt/chatchat/DB_forth/dir8",
+    # 'Confusion_matrix_0717': "/mnt/chatchat/DB_forth/dir9",
+    'cluster_dedim_0721': "/mnt/chatchat/DB_forth/dir10",
+    'Confusion_matrix_0721_Re': "/mnt/chatchat/DB_forth/dir11",
+}
+
+# class CorpusMapper:
+#     def __init__(self):
+#         self.mapping: dict[str, str] = {}
+    
+#     def add_mapping(self, corpus_name: str, persist_dir: str) -> None:
+#         self.mapping[corpus_name] = persist_dir
+
+# # 使用示例
+# mapper = CorpusMapper()
+# mapper.add_mapping('TOOL_CN_0628_dir3', "/mnt/chatchat/DB_forth/dir3")

@@ -1,0 +1,10 @@
+{
+    "markdown_file": "/mnt/chatchat/source_DATA_md/machinelearning_SkyeYu.md",
+    "vector_database_store_dir": "/mnt/chatchat/RAGdataset/machinelearning",
+    "database_URI": "http://110.1.122.1:30530",
+    "DB_COLLECTION_NAME": "machinelearning_ALL_0819",
+    "NUM_CHUNKS": 30,
+    "breakpoint_percentile_threshold": 95,
+    "GLOBAL_DIMENSION": 1024,
+    "CHUNKING": "Semantic Chunking"
+}

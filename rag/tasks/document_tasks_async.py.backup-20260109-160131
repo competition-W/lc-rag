@@ -1,0 +1,101 @@
+import asyncio
+from celery import Task
+from llama_index.core.schema import TextNode
+from llama_index.core import Settings
+from llm.async_embedding import get_async_embed_model  # 👈 新增
+from tasks.celery_app import celery_app
+from services.minio_client import minio_client
+from services.processors.factory import DocumentProcessorFactory
+from services.milvus_manager import milvus_manager
+from utils.logger import logger
+
+
+@celery_app.task(bind=True, base=DocumentTask, name="tasks.process_document")
+def process_document_task(self, object_name: str, filename: str, department: str, user_id: str = "system"):
+    """文档处理任务 - 使用异步 Embedding"""
+    
+    logger.info(f"🚀 开始处理文档: {filename} (部门: {department}, 用户: {user_id})")
+
+    async def _async_workflow():
+        try:
+                       # 1. 从 MinIO 下载 (同步操作，但在 async 函数中是允许的，虽然会阻塞 Loop)
+            file_content = minio_client.download_file(object_name)
+            
+            # 2. 获取解析器
+            processor = DocumentProcessorFactory.get_processor(filename, department=department)
+            if not processor:
+                raise ValueError(f"不支持的文件格式: {filename}")
+            
+            # 3. 执行解析 (异步等待)
+            # 注意：这里直接 await，不需要再包 asyncio.run
+            process_result = await processor.process(file_content, user_id=user_id, filename=filename)
+            
+            # 4. 获取结果列表
+            if hasattr(process_result, 'nodes'):
+                raw_chunks = process_result.nodes
+            elif hasattr(process_result, 'chunks'):
+                raw_chunks = process_result.chunks
+            elif hasattr(process_result, 'documents'):
+                raw_chunks = process_result.documents
+            else:
+                logger.error(f"❌ ProcessResult 属性未知，包含: {dir(process_result)}")
+                raise AttributeError("ProcessResult object has no attribute 'nodes' or 'chunks'")
+
+            if not raw_chunks:
+                logger.warning("⚠️ 文档解析结果为空")
+                return {"status": "skipped"}
+                
+            logger.info(f"📄 解析完成，生成 {len(raw_chunks)} 个片段")
+           
+            # 5. 转换为 TextNode
+            nodes = []
+            for i, chunk in enumerate(raw_chunks):
+                metadata = chunk.extra_info.copy() if chunk.extra_info else {}
+                metadata["department"] = department
+                metadata["filename"] = filename
+                metadata["chunk_id"] = i
+                metadata["owner"] = user_id
+                
+                node = TextNode(
+                    text=chunk.text,
+                    metadata=metadata,
+                    excluded_embed_metadata_keys=["chunk_id", "filename", "department", "owner"]
+                )
+                nodes.append(node)
+            
+            logger.info(f"✅ 转换完成 {len(nodes)} 个节点")
+            
+            # 6. 使用异步接口批量生成 Embeddings
+            logger.info("🚀 开始异步生成 Embeddings...")
+            
+            async_embed_client = get_async_embed_model()
+            texts = [node.text for node in nodes]
+            
+            # 一次性提交所有文本
+            embeddings = await async_embed_client.embed_texts(texts)
+            
+            logger.info(f"✅ Embeddings 生成完成，共 {len(embeddings)} 个")
+            
+            # 7. 将 embeddings 附加到 nodes
+            for node, embedding in zip(nodes, embeddings):
+                node.embedding = embedding
+            
+            # 8. 直接写入 Milvus（不再需要重新生成 embedding）
+            logger.info("💾 写入 Milvus...")
+            milvus_manager.insert_nodes_with_embeddings(
+                department=department,
+                nodes=nodes
+            )
+            
+            logger.info(f"🎉 处理完成! 成功写入 {len(nodes)} 个节点")
+            return {
+                "status": "success", 
+                "filename": filename, 
+                "nodes_count": len(nodes)
+            }
+
+        except Exception as e:
+            logger.exception(f"❌ 处理失败: {filename}")
+            raise e
+
+    return asyncio.run(_async_workflow())

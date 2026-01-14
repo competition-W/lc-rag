@@ -1,0 +1,11 @@
+{
+    "markdown_file": "/mnt/chatchat/source_DATA_md/example_for_shap_0707.md",
+    "vector_database_store_dir": "/mnt/chatchat/DB_forth/dir6",
+    "database_URI": "http://milvus-standalone:19530",
+    "DB_COLLECTION_NAME": "shap_CN_0808",
+    "CHUNK_SIZE": 1000,
+    "CHUNK_OVERLAP": 200,
+    "NUM_CHUNKS": 6,
+    "GLOBAL_DIMENSION": 1024,
+    "CHUNKING": "Re"
+}

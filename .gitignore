@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyo
+*.pyd
+# 虚拟环境
+.venv/
+venv/
+# 包管理文件
+uv.lock
+*.egg-info/
+*.egg
+privkey.pem
+# 日志文件
+log_station/  # 你的日志目录
+*.log
+logs/
+*.logs
+*.back
+*.gz

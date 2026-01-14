@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rag-eval-pod
+spec:
+  nodeName: ailabnew-kube01
+  containers:
+  - name: evaluator
+    image: python:3.11  # <--- 修改这里，必须是 3.11 或以上
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/bash", "-c", "sleep 360000"]
+    volumeMounts:
+    - mountPath: /mnt/ai
+      name: host-data
+    workingDir: /mnt/ai/models/distribution/chatapp
+  volumes:
+  - name: host-data
+    hostPath:
+      path: /mnt/ai
+      type: Directory

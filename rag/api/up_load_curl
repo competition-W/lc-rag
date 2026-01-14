@@ -1,0 +1,7 @@
+curl -X 'POST' \
+  'http://127.0.0.1:8088/documents/upload' \
+  -H 'accept: application/json' \
+  -H 'X-User-ID: test_user' \
+  -H 'X-Department: market' \
+  -F 'file=@/mnt/omicshub/rag/test_data/test.xlsx' \
+  -F 'target_dept=market'
