@@ -90,9 +90,10 @@
 
 
 # 文件路径: /mnt/omicshub/rag/api/query.py
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 import logging
+import uuid
 
 # ✅ 1. 引入标准响应工具
 from utils.response import success, error
@@ -106,12 +107,20 @@ from services.query_service import unified_query_service
 
 logger = logging.getLogger(__name__)
 
+# 引入WebSocket连接管理器
+from utils.websocket_manager import manager
+
 # 定义路由
 # 注意：在 main.py 中挂载时建议使用 prefix="/query"，这里路径设为空字符串 ""
 router = APIRouter(tags=["智能检索"])
 
 class SmartSearchRequest(BaseModel):
     text: str = Field(..., description="用户的自然语言输入", example="帮我找小鼠心脏的数据")
+    use_llm: bool = Field(True, description="是否需要LLM生成回答")
+
+class StreamingSearchRequest(BaseModel):
+    text: str = Field(..., description="用户的自然语言输入", example="帮我找小鼠心脏的数据")
+    connection_id: str = Field(..., description="WebSocket连接ID")
     use_llm: bool = Field(True, description="是否需要LLM生成回答")
 
 @router.post("")
@@ -125,10 +134,10 @@ async def smart_search(
     try:
         # ================= Step 1: 意图理解 (Parser) =================
         # 调用 services.query_parser
-        # parse_user_query 返回 (搜索关键词, 过滤条件字典)
-        real_query, extracted_filters = await parse_user_query(request.text, auth)
+        # parse_user_query 返回 (搜索关键词, 过滤条件字典, 意图类型)
+        real_query, extracted_filters, intent = await parse_user_query(request.text, auth)
         
-        logger.info(f"🧠 [API] 初步意图: 提取词='{real_query}' | Filters={extracted_filters}")
+        logger.info(f"🧠 [API] 初步意图: 提取词='{real_query}' | Filters={extracted_filters} | Intent={intent}")
 
         # =================================================================
         # ✅ 【核心修改】空搜索词兜底策略
@@ -150,7 +159,8 @@ async def smart_search(
             query_text=real_query,
             column_filters=extracted_filters,
             llm_top_k=5,       # 传给 LLM 的上下文条数
-            semantic_top_k=10  # 语义检索初筛条数
+            semantic_top_k=10,  # 语义检索初筛条数
+            intent=intent       # 传递识别出的意图
         )
         
         # ================= Step 3: 数据清洗与组装 =================
@@ -179,7 +189,8 @@ async def smart_search(
             },
             "sources": sources,     # 对应 query_service 中的 best_rows (Source Card)
             "all_rows": all_rows,   # 对应 query_service 中的 all_rows (Table)
-            "total_count": len(all_rows)
+            "total_count": len(all_rows),
+            "token_stats": result_set.get("token_stats", {})  # 添加token统计信息
         }
 
         # ================= Step 4: 返回标准响应 =================
@@ -188,3 +199,111 @@ async def smart_search(
     except Exception as e:
         logger.exception(f"❌ Search API Error: {e}")
         return error(message=f"检索服务异常: {str(e)}", code=500)
+
+@router.post("/streaming")
+async def streaming_search(
+    request: StreamingSearchRequest,
+    auth: AuthContext = Depends(get_auth_context)
+):
+    """
+    流式 RAG 智能检索接口
+    通过 WebSocket 实时返回 LLM 生成结果
+    """
+    try:
+        # 获取WebSocket连接
+        websocket = await manager.get_connection(request.connection_id)
+        if not websocket:
+            return error(message="WebSocket连接不存在或已关闭", code=400)
+        
+        # ================= Step 1: 意图理解 (Parser) =================
+        real_query, extracted_filters, intent = await parse_user_query(request.text, auth)
+        
+        logger.info(f"🧠 [Streaming API] 初步意图: 提取词='{real_query}' | Filters={extracted_filters} | Intent={intent}")
+
+        # 空搜索词兜底策略
+        if not real_query or not real_query.strip():
+            logger.info(f"ℹ️ [Streaming API] 提取的搜索词为空，回退使用原始提问进行向量检索: '{request.text}'")
+            real_query = request.text
+
+        logger.info(f"🚀 [Streaming API] 最终执行: Query='{real_query}' | Filters={extracted_filters}")
+
+        # ================= Step 2: 统一检索 (Service) =================
+        # 调用 services.query_service，并传递WebSocket连接用于流式输出
+        result_set = await unified_query_service(
+            auth=auth,
+            query_text=real_query,
+            column_filters=extracted_filters,
+            llm_top_k=5,
+            semantic_top_k=10,
+            intent=intent,
+            websocket=websocket  # 传递WebSocket连接用于流式输出
+        )
+        
+        # ================= Step 3: 数据组装 =================
+        # 获取除了answer之外的数据，因为answer已经通过WebSocket发送
+        sources = result_set.get("sources", [])
+        all_rows = result_set.get("all_rows", [])
+        mode = result_set.get("mode", "unknown")
+
+        if not all_rows and sources:
+            all_rows = sources
+
+        # 构造 data 字典
+        response_data = {
+            "mode": mode,
+            "intent": {
+                "original_text": request.text,
+                "extracted_filters": extracted_filters,
+                "search_term": real_query
+            },
+            "sources": sources,
+            "all_rows": all_rows,
+            "total_count": len(all_rows),
+            "token_stats": result_set.get("token_stats", {})  # 添加token统计信息
+        }
+
+        return success(data=response_data)
+
+    except Exception as e:
+        logger.exception(f"❌ Streaming Search API Error: {e}")
+        
+        # 尝试通知前端出错
+        websocket = await manager.get_connection(request.connection_id)
+        if websocket:
+            try:
+                await websocket.send_json({"type": "end_of_stream", "status": "error", "error": str(e)})
+            except Exception:
+                pass
+        
+        return error(message=f"流式检索服务异常: {str(e)}", code=500)
+
+# WebSocket连接端点
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket连接端点
+    用于建立和维护WebSocket连接，支持流式输出
+    """
+    # 为每个连接生成唯一ID
+    connection_id = str(uuid.uuid4())
+    await manager.connect(websocket, connection_id)
+    
+    # 发送连接信息
+    await websocket.send_json({
+        "type": "connection_info",
+        "connection_id": connection_id
+    })
+    
+    try:
+        # 保持连接
+        while True:
+            # 接收客户端消息（用于心跳检测）
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        logger.info(f"🔌 WebSocket断开 (ID: {connection_id})")
+    except Exception as e:
+        logger.error(f"WebSocket错误 (ID: {connection_id}): {str(e)}")
+    finally:
+        await manager.disconnect(connection_id)

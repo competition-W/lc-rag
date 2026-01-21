@@ -60,7 +60,7 @@
       "valid_values": []
     },
     {
-      "key": "col_实验方案_解离_抽核_",
+      "key": "col_shi_yan_fang_an_jie_li_chou_he",
       "name": "实验方案\n（解离/抽核）",
       "desc": "来自表格列 '实验方案\n（解离/抽核）'",
       "valid_values": [
@@ -69,13 +69,13 @@
       ]
     },
     {
-      "key": "col_组织重量_数值_",
+      "key": "col_zu_zhi_zhong_liang_shu_zhi",
       "name": "组织重量\n（数值）",
       "desc": "来自表格列 '组织重量\n（数值）'",
       "valid_values": []
     },
     {
-      "key": "col_组织重量_单位_",
+      "key": "col_zzzl\n（dw）",
       "name": "组织重量\n（单位）",
       "desc": "来自表格列 '组织重量\n（单位）'",
       "valid_values": [
@@ -87,13 +87,13 @@
       ]
     },
     {
-      "key": "col_定性描述_几根_几条等_",
+      "key": "col_ding_xing_miao_shu_ji_gen_ji_tiao_deng",
       "name": "定性描述\n（几根/几条等）",
       "desc": "来自表格列 '定性描述\n（几根/几条等）'",
       "valid_values": []
     },
     {
-      "key": "col_核酸质量_rin值_",
+      "key": "col_hszl\n（rinz）",
       "name": "核酸质量\n（RIN值）",
       "desc": "来自表格列 '核酸质量\n（RIN值）'",
       "valid_values": [
@@ -135,7 +135,7 @@
       ]
     },
     {
-      "key": "col_流式与否",
+      "key": "col_liu_shi_yu_fou",
       "name": "流式与否",
       "desc": "来自表格列 '流式与否'",
       "valid_values": [
@@ -145,13 +145,13 @@
       ]
     },
     {
-      "key": "col_抗体信息",
+      "key": "col_kang_ti_xin_xi",
       "name": "抗体信息",
       "desc": "来自表格列 '抗体信息'",
       "valid_values": []
     },
     {
-      "key": "col_流式分选方案",
+      "key": "col_lsfxfa",
       "name": "流式分选方案",
       "desc": "来自表格列 '流式分选方案'",
       "valid_values": []
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "key": "col_其他和数据指标挂钩的信息",
+      "key": "col_qthsjzbggdxx",
       "name": "其他和数据指标挂钩的信息",
       "desc": "来自表格列 '其他和数据指标挂钩的信息'",
       "valid_values": []
@@ -209,73 +209,73 @@
       ]
     },
     {
-      "key": "col_细胞总量_万_",
+      "key": "col_xi_bao_zong_liang_wan",
       "name": "细胞总量\n（万）",
       "desc": "来自表格列 '细胞总量\n（万）'",
       "valid_values": []
     },
     {
-      "key": "col_结团率",
+      "key": "col_jie_tuan_lv",
       "name": "结团率",
       "desc": "来自表格列 '结团率'",
       "valid_values": []
     },
     {
-      "key": "col_细胞活率",
+      "key": "col_xi_bao_huo_lv",
       "name": "细胞活率",
       "desc": "来自表格列 '细胞活率'",
       "valid_values": []
     },
     {
-      "key": "col_有核率",
+      "key": "col_you_he_lv",
       "name": "有核率",
       "desc": "来自表格列 '有核率'",
       "valid_values": []
     },
     {
-      "key": "col_捕获细胞数",
+      "key": "col_bu_huo_xi_bao_shu",
       "name": "捕获细胞数",
       "desc": "来自表格列 '捕获细胞数'",
       "valid_values": []
     },
     {
-      "key": "col_数据量",
+      "key": "col_shu_ju_liang",
       "name": "数据量",
       "desc": "来自表格列 '数据量'",
       "valid_values": []
     },
     {
-      "key": "col_基因中位数",
+      "key": "col_ji_yin_zhong_wei_shu",
       "name": "基因中位数",
       "desc": "来自表格列 '基因中位数'",
       "valid_values": []
     },
     {
-      "key": "col_注释结果_组织特异性注释_",
+      "key": "col_zsjg_zztyxzs",
       "name": "注释结果（组织特异性注释）",
       "desc": "来自表格列 '注释结果（组织特异性注释）'",
       "valid_values": []
     },
     {
-      "key": "col_组织消化方案概述",
+      "key": "col_zzxhfags",
       "name": "组织消化方案概述",
       "desc": "来自表格列 '组织消化方案概述'",
       "valid_values": []
     },
     {
-      "key": "col_相关组织用户文章链接",
+      "key": "col_xgzzyhwzlj",
       "name": "相关组织用户文章链接",
       "desc": "来自表格列 '相关组织用户文章链接'",
       "valid_values": []
     },
     {
-      "key": "col_飞书文档链接",
+      "key": "col_fswdlj",
       "name": "飞书文档链接",
       "desc": "来自表格列 '飞书文档链接'",
       "valid_values": []
     },
     {
-      "key": "col_视频直播链接",
+      "key": "col_spzblj",
       "name": "视频直播链接",
       "desc": "来自表格列 '视频直播链接'",
       "valid_values": []

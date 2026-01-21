@@ -35,7 +35,7 @@ class DashScopeLLM(CustomLLM):
 
     # ---------- 静态/类常量 ----------
     context_window: ClassVar[int] = 4096*2
-    num_output: ClassVar[int]     = 512*2
+    num_output: ClassVar[int]     = 4096  # 增大默认输出token数，防止内容被截断
 
     # ---------- Pydantic 模型字段 ----------
     model_name: str = Field(default="qwen-plus", description="DashScope 模型名称")
@@ -57,13 +57,18 @@ class DashScopeLLM(CustomLLM):
     # ---------- 公共辅助 ----------
     def _build_params(self, **local_kwargs: Any) -> Dict[str, Any]:
         """组装 DashScope Generation/AioGeneration 共有参数"""
+        # 构建基础参数
         params: Dict[str, Any] = {
             "api_key": self.api_key,
             "model":   self.model_name,
-            "max_tokens": self.num_output,
             **self._generation_kwargs,
             **local_kwargs,
         }
+        
+        # 如果没有明确指定max_tokens，则使用默认的num_output
+        if "max_tokens" not in params:
+            params["max_tokens"] = self.num_output
+        
         if self.temperature is not None:
             params["temperature"] = self.temperature
         if self.top_p is not None:
@@ -94,6 +99,15 @@ class DashScopeLLM(CustomLLM):
             if resp.status_code == HTTPStatus.OK
             else ""
         )
+        
+        # 统计LLM tokens消耗
+        from utils.token_counter import token_counter
+        token_counter.count_llm_tokens(
+            input_text=prompt,
+            output_text=text,
+            model_name=self.model_name
+        )
+        
         return CompletionResponse(text=text, raw=resp)
 
     @llm_completion_callback()

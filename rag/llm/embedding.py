@@ -85,6 +85,15 @@ class CustomDashScopeEmbedding(BaseEmbedding):
         # ✅ 日志：打印当前批次正在处理
         # logger.info(f"📡 DashScope Embedding 请求中... (本批次 {len(texts)} 条)")
 
+        # 统计嵌入模型的tokens消耗
+        from utils.token_counter import token_counter
+        # 将所有文本拼接成一个字符串进行统计
+        combined_text = " ".join(texts)
+        token_counter.count_embedding_tokens(
+            text=combined_text,
+            model_name=self._model_name
+        )
+
         call_params = {
             "model": self._model_name,
             "input": texts,

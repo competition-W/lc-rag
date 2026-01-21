@@ -1,5 +1,4 @@
 import os
-from llama_index.embeddings.dashscope import DashScopeEmbedding
 ##呼叫api_key and url
 import llm.key_url
 # 设置模型

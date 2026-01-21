@@ -95,6 +95,31 @@ class MilvusManager:
                 },
             )
             logger.info("✅ MilvusVectorStore 初始化成功")
+            
+            # 显式加载集合，避免查询时出现 collection not loaded 错误
+            logger.info(f"📥 正在加载集合: {collection_name}")
+            from pymilvus import connections, Collection
+            try:
+                # 连接 Milvus
+                connections.connect(
+                    alias="load_collection",
+                    host=settings.MILVUS_HOST,
+                    port=settings.MILVUS_PORT,
+                    timeout=10
+                )
+                # 获取 Collection 对象并加载
+                coll = Collection(collection_name)
+                coll.load()
+                logger.info(f"✅ 集合 {collection_name} 加载成功")
+            except Exception as e:
+                logger.warning(f"⚠️ 集合加载失败 (将在查询时自动加载): {e}")
+            finally:
+                # 断开临时连接
+                try:
+                    connections.disconnect("load_collection")
+                except:
+                    pass
+            
             return vector_store
         except Exception as e:
             logger.error(f"❌ MilvusVectorStore 初始化失败: {e}")

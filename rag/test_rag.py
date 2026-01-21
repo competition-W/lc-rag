@@ -14,14 +14,12 @@ curl -X POST "http://127.0.0.1:8088/query" \
 import requests
 import json
 import time
-from llama_index.core import Settings
-from llama_index.llms.dashscope import DashScope
 import os
 
 # ================= 配置区 =================
-API_URL = "http://127.0.0.1:8000/query"  # 您的 API 地址
+API_URL = "http://127.0.0.1:8088/query"  # 您的 API 地址
 TOKEN = "YOUR_ACCESS_TOKEN_HERE"         # 🔑 请替换为您的有效 JWT Token
-# =========================================
+# ==========================================
 
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",

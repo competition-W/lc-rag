@@ -1,6 +1,6 @@
 """
-    意图识别
-
+    查询解析器
+    负责将用户的自然语言查询转换为结构化的搜索请求
 """
 import json
 import logging
@@ -11,11 +11,14 @@ from llama_index.core import Settings
 from llama_index.core.llms import ChatMessage, MessageRole
 from utils.auth import AuthContext
 
+# 导入新创建的模块
+from .prompt_manager import prompt_manager
+from .intent_recognizer import intent_recognizer
+
 logger = logging.getLogger(__name__)
 
 # =========================================================
-# 🟢 1. 备用数据：您之前提供的详细组织列表
-# 当 JSON 文件里读不到值时，使用这个列表兜底
+# 备用数据：当 JSON 里读不到值时，使用这个列表兜底
 # =========================================================
 FALLBACK_TISSUES = [
             "背最长肌", "心脏", "T细胞", "背膘", "癌旁组织", "疤痕皮肤", "半脑", "海马", "颞叶", 
@@ -83,34 +86,10 @@ FALLBACK_TISSUES = [
             "左大腿皮肤", "左心室"
         ]
 
-# FALLBACK_SPECIES = ["人", "小鼠", "大鼠", "猴", "斑马鱼", "猪", "牛"]
-
-# # 允许筛选的字段
-# ALLOWED_FILTER_KEYS = [
-#     "col_物种", 
-#     "col_样本详细类型", 
-#     "col_实验平台", 
-#     "col_样本大类", 
-#     "col_样本保存方案",
-#     "col_是否裂红",
-#     "col_是否去死"
-# ]
-
-# # 🔥 键名映射表：防止 LLM 记不住复杂的 Key，做一层容错映射
-# KEY_MAPPING = {
-#     "物种": "col_物种",
-#     "组织": "col_样本详细类型",
-#     "组织类型": "col_样本详细类型",
-#     "样本类型": "col_样本详细类型",
-#     "部位": "col_样本详细类型",
-#     "平台": "col_实验平台",
-#     "保存方案": "col_样本保存方案"
-# }
-
 FALLBACK_SPECIES = ["人", "小鼠", "大鼠", "猕猴", "绵羊","山羊","羊", "猪", "牛","蝙蝠","人+大鼠"]
 
 # ==========================================
-# 1. 允许筛选的字段 (必须与 Milvus 里的英文 Key 一致)
+# 允许筛选的字段 (必须与 Milvus 里的英文 Key 一致)
 # ==========================================
 ALLOWED_FILTER_KEYS = [
     "species",          # 对应原来的 col_物种
@@ -122,11 +101,20 @@ ALLOWED_FILTER_KEYS = [
     "is_dead_removal",  # 对应 col_是否去死
     "rin_score",        # 对应 col_核酸质量
     "project_id",
-    "sample_date"
+    "sample_date",
+    # 数据指标字段
+    "col_xi_bao_huo_lv",    # 细胞活率
+    "col_jie_tuan_lv",      # 结团率
+    "col_bu_huo_xi_bao_shu", # 捕获细胞数
+    "col_xbzl_w",           # 细胞总量（规范化）
+    "col_you_he_lv",        # 有核率
+    "col_ji_yin_zhong_wei_shu", # 基因中位数
+    "col_shu_ju_liang",     # 数据量
+    "col_zsjg_zztyxzs"      # 注释结果（规范化）
 ]
 
 # ==========================================
-# 2. 键名映射表 (User Input -> Standard DB Key)
+# 键名映射表 (User Input -> Standard DB Key)
 # 作用：把用户口语词、或者 LLM 可能输出的旧 col_ 写法，统一转成标准英文
 # ==========================================
 KEY_MAPPING = {
@@ -167,9 +155,14 @@ KEY_MAPPING = {
     "col_是否去死": "is_dead_removal"
 }
 
-def load_dynamic_schema(json_path: str = None) -> str:
+# ==========================================
+# Schema 加载与管理
+# ==========================================
+
+def load_schema_registry(json_path: str = None) -> Dict[str, Dict[str, str]]:
     """
-    加载 Schema，如果 JSON 里是空的，自动使用 fallback 数据
+    加载 Schema 注册表
+    返回完整的注册表数据
     """
     if json_path is None:
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -181,14 +174,43 @@ def load_dynamic_schema(json_path: str = None) -> str:
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 registry = json.load(f)
-            logger.info(f"✅ 成功加载 Schema 文件: {json_path}")
+            logger.info(f"✅ 成功加载 Schema 注册表: {json_path}")
         except Exception as e:
-            logger.error(f"❌ 读取 Schema JSON 出错: {e}")
-    
-    columns = registry.get("market", [])
-    schema_lines = []
+            logger.error(f"❌ 读取 Schema 注册表出错: {e}")
+    return registry
 
-    # 这里的 Set 用于去重，防止 Prompt 过长
+# 全局 Schema 注册表缓存
+SCHEMA_REGISTRY = load_schema_registry()
+
+# 构建中文字段名到规范化字段名的映射
+NAME_TO_KEY_MAPPING = {}
+for dept, columns in SCHEMA_REGISTRY.items():
+    for col in columns:
+        name = col.get("name", "")
+        key = col.get("key", "")
+        if name and key:
+            NAME_TO_KEY_MAPPING[name] = key
+
+# 构建数据指标到规范化字段名的映射（特殊处理，用于关键词提取）
+METRIC_KEY_MAPPING = {
+    "细胞活率": NAME_TO_KEY_MAPPING.get("细胞活率", "col_xi_bao_huo_lv"),
+    "结团率": NAME_TO_KEY_MAPPING.get("结团率", "col_jie_tuan_lv"),
+    "捕获细胞数": NAME_TO_KEY_MAPPING.get("捕获细胞数", "col_bu_huo_xi_bao_shu"),
+    "细胞总量": NAME_TO_KEY_MAPPING.get("细胞总量", "col_xbzl_w"),  # 规范化字段名
+    "有核率": NAME_TO_KEY_MAPPING.get("有核率", "col_you_he_lv"),
+    "基因中位数": NAME_TO_KEY_MAPPING.get("基因中位数", "col_ji_yin_zhong_wei_shu"),
+    "数据量": NAME_TO_KEY_MAPPING.get("数据量", "col_shu_ju_liang"),
+    "注释结果": NAME_TO_KEY_MAPPING.get("注释结果", "col_zsjg_zztyxzs"),  # 规范化字段名
+    "测序深度": "col_ce_xu_shen_du"  # 默认值，schema 中未找到
+}
+
+def load_schema_context(json_path: str = None) -> str:
+    """
+    加载 Schema 上下文
+    如果 JSON 里读不到值时，使用 fallback 数据
+    """
+    columns = SCHEMA_REGISTRY.get("market", [])
+    schema_lines = []
     added_keys = set()
 
     # 1. 优先处理 JSON 文件里的定义
@@ -200,16 +222,7 @@ def load_dynamic_schema(json_path: str = None) -> str:
         name = col.get("name", key)
         valid_values = col.get("valid_values", [])
 
-        # 🔧 补丁：如果样本类型为空，注入备用
-        if key == "col_样本详细类型":
-            if not valid_values or (len(valid_values) == 1 and not valid_values[0]):
-                valid_values = FALLBACK_TISSUES
-        
-        # 🔧 补丁：如果物种为空，注入备用
-        if key == "col_物种":
-            if not valid_values:
-                valid_values = FALLBACK_SPECIES
-
+        # 过滤有效值
         clean_values = [str(v) for v in valid_values if v and str(v).strip() not in ["/", "nan"]]
         
         if clean_values:
@@ -218,91 +231,258 @@ def load_dynamic_schema(json_path: str = None) -> str:
             schema_lines.append(f"- 字段: `{key}` ({name})\n  可选值: [{values_str}]")
             added_keys.add(key)
 
-    # 2. 如果 JSON 完全挂了，启用强制兜底
-    if "col_样本详细类型" not in added_keys:
-        logger.warning("⚠️ Schema 中缺少样本类型，启用强制兜底")
-        schema_lines.append(f"- 字段: `col_样本详细类型` (组织)\n  可选值: {str(FALLBACK_TISSUES[:80])}")
-        
-    if "col_物种" not in added_keys:
-        schema_lines.append(f"- 字段: `col_物种` (物种)\n  可选值: {str(FALLBACK_SPECIES)}")
-
     return "\n".join(schema_lines)
 
-# 全局加载
-SCHEMA_CONTEXT_CACHE = load_dynamic_schema()
+# 全局 Schema 上下文缓存
+SCHEMA_CONTEXT_CACHE = load_schema_context()
 
-async def parse_user_query(user_text: str, auth: AuthContext = None) -> Tuple[str, Dict[str, Any]]:
-    # 2. 构建 Prompt
-    system_prompt = (
-        "你是一个生物数据库查询专家。请将用户的自然语言转换为精确的数据库筛选条件。\n\n"
-        "### 数据库字段定义 (Schema)\n"
-        f"{SCHEMA_CONTEXT_CACHE}\n\n"
-        "### 提取规则\n"
-        "1. **必须严格匹配**：提取出的 filter 值必须出现在上述【可选值】列表中。\n"
-        "   - 用户说 'Mouse' -> 输出 '小鼠'\n"
-        "   - 用户说 'Heart' -> 输出 '心脏'\n"
-        "2. **输出格式**：只输出标准的 JSON 字符串，不要包含 '```json' 或其他废话。\n"  
-        "3. **Key要求**：必须使用 `col_` 开头的标准字段名（例如 `col_物种`）。\n\n"  
-        "### 示例\n"  
-        "用户: 小鼠心脏的冻存方案\n"  
-        "助手: " + json.dumps({  
-            "filters": {  
-                "col_物种": "小鼠",   
-                "col_样本详细类型": "心脏"  
-            },  
-            "search_term": "冻存方案"  
-        }, ensure_ascii=False)  
-    )  
+# ==========================================
+# 关键词提取
+# ==========================================
 
-    try:  
-        if not Settings.llm:  
-            return user_text, {}  
+def extract_keywords(query_text: str) -> str:
+    """
+    从查询文本中提取关键词
+    用于向量检索
+    """
+    # 简单实现：去除停用词，提取核心词
+    # 后续可扩展为更复杂的关键词提取算法
+    stop_words = ["的", "了", "和", "是", "在", "有", "我", "你", "他", "她", "它", "们"]
+    words = query_text.split()
+    keywords = [word for word in words if word not in stop_words]
+    return " ".join(keywords)
 
-        # 调用 LLM  
-        response = await Settings.llm.achat(  
-            messages=[  
-                ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),  
-                ChatMessage(role=MessageRole.USER, content=user_text)  
-            ]  
-        )  
+# ==========================================
+# 查询解析
+# ==========================================
+
+async def parse_query(query_text: str, intent: str, schema_context: str) -> Tuple[str, Dict[str, Any]]:
+    """
+    解析查询文本，提取搜索词和过滤条件
+    
+    Args:
+        query_text: 用户的自然语言查询
+        intent: 识别出的意图类型
+        schema_context: Schema 上下文
         
-        raw_content = response.message.content  
-        logger.info(f"🧠 [LLM Raw Output]: {raw_content}")  
-
-        # =========================================================  
-        # 🔥 核心增强 1: 使用正则提取 JSON，无视 Markdown 和废话  
-        # =========================================================  
-        json_match = re.search(r"\{.*\}", raw_content, re.DOTALL)  
-        if not json_match:  
-            logger.warning("❌ 无法从 LLM 输出中提取 JSON")  
-            return user_text, {}  
+    Returns:
+        搜索词和过滤条件字典
+    """
+    # 对于样本准备查询和项目经验查询，使用纯关键词提取
+    if intent in ["sample_query", "project_query"]:
+        logger.info(f"🔑 [{intent}] 使用纯关键词提取策略")
+        
+        # 1. 提取关键词
+        keywords = extract_keywords(query_text)
+        
+        # 2. 尝试从关键词中提取过滤条件
+        filters = {}
+        
+        # 增强的关键词匹配，提取更多过滤条件
+        # 1. 物种匹配
+        species_keywords = {
+            "小鼠": "小鼠",
+            "人": "人",
+            "大鼠": "大鼠",
+            "猪": "猪",
+            "牛": "牛",
+            "羊": "羊",
+            "猕猴": "猕猴",
+            "蝙蝠": "蝙蝠"
+        }
+        for keyword, value in species_keywords.items():
+            if keyword in query_text:
+                filters["species"] = value
+                break
+        
+        # 2. 组织类型匹配
+        tissue_keywords = {
+            "心脏": "心脏",
+            "肝脏": "肝脏",
+            "肾脏": "肾脏",
+            "肺": "肺",
+            "脑": "大脑",
+            "脾脏": "脾脏",
+            "肌肉": "肌肉",
+            "皮肤": "皮肤",
+            "血液": "全血",
+            "外周血": "外周血",
+            "PBMC": "PBMC"
+        }
+        for keyword, value in tissue_keywords.items():
+            if keyword in query_text:
+                filters["tissue"] = value
+                break
+        
+        # 3. 样本大类匹配
+        is_frozen_tissue = False
+        if "冻存组织" in query_text:
+            filters["category"] = "冻存组织"
+            is_frozen_tissue = True
+        elif "新鲜组织" in query_text:
+            filters["category"] = "新鲜组织"
+        elif "细胞系" in query_text:
+            filters["category"] = "细胞系"
+        elif "细胞悬液" in query_text:
+            filters["category"] = "细胞悬液"
+        elif "组织" in query_text:
+            # 兜底：如果提到了组织但没有具体类型，默认分类为组织
+            filters["category"] = "组织"
+        
+        # 4. 样本保存方案匹配
+        storage_keywords = {
+            "冻存": "冻存",
+            "液氮": "液氮保存",
+            "新鲜": "新鲜处理",
+            "常温": "常温保存",
+            "4℃": "4℃",
+            "-80℃": "-80℃"
+        }
+        for keyword, value in storage_keywords.items():
+            # 特殊处理：如果已经识别为"冻存组织"，则不再将"冻存"识别为保存方案
+            if keyword == "冻存" and is_frozen_tissue:
+                continue
+            if keyword in query_text:
+                filters["storage_method"] = value
+                break
+        
+        # 5. 实验方案匹配
+        protocol_keywords = {
+            "抽核": "抽核",
+            "解离": "解离",
+            "消化": "消化",
+            "分选": "分选",
+            "流式": "流式分选",
+            "测序": "测序",
+            "建库": "建库"
+        }
+        for keyword, value in protocol_keywords.items():
+            if keyword in query_text:
+                # 使用规范化的字段名 col_syfa_jl_ch，避免特殊字符问题
+                filters["col_syfa_jl_ch"] = value
+                break
+        
+        # 6. 实验指标匹配 - 使用规范化字段名，仅提取字段名作为过滤条件
+        # 对于数据指标字段，我们只需要提取字段名，不需要设置具体值
+        # 因为这些字段是数值类型，我们只需要检查它们是否存在
+        if "细胞活率" in query_text:
+            # 添加字段名到过滤条件，值设为 "*" 表示匹配所有值
+            filters[METRIC_KEY_MAPPING["细胞活率"]] = "*"
+        elif "结团率" in query_text:
+            filters[METRIC_KEY_MAPPING["结团率"]] = "*"
+        elif "捕获细胞数" in query_text:
+            filters[METRIC_KEY_MAPPING["捕获细胞数"]] = "*"
+        elif "细胞总量" in query_text:
+            filters[METRIC_KEY_MAPPING["细胞总量"]] = "*"
+        elif "有核率" in query_text:
+            filters[METRIC_KEY_MAPPING["有核率"]] = "*"
+        
+        # 7. 数据指标匹配 - 使用规范化字段名，仅提取字段名作为过滤条件
+        if "基因中位数" in query_text:
+            filters[METRIC_KEY_MAPPING["基因中位数"]] = "*"
+        elif "数据量" in query_text:
+            filters[METRIC_KEY_MAPPING["数据量"]] = "*"
+        elif "注释结果" in query_text:
+            filters[METRIC_KEY_MAPPING["注释结果"]] = "*"
+        elif "测序深度" in query_text:
+            filters[METRIC_KEY_MAPPING["测序深度"]] = "*"
+        
+        logger.info(f"📝 提取的关键词: {keywords}")
+        logger.info(f"🎯 提取的过滤条件: {filters}")
+        
+        return keywords, filters
+    
+    # 对于其他意图，使用LLM生成结构化查询
+    logger.info(f"🧠 [{intent}] 使用LLM生成结构化查询")
+    
+    # 获取对应意图的提示词模板
+    prompt_config = prompt_manager.get_prompt(intent)
+    
+    # 构建系统提示词（使用字符串替换而非format，避免解析示例中的{filters}）
+    system_prompt = prompt_config["system_prompt"].replace("{schema_context}", schema_context)
+    
+    try:
+        # 调用 LLM 生成结构化查询
+        response = await Settings.llm.achat(
+            messages=[
+                ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
+                ChatMessage(role=MessageRole.USER, content=query_text)
+            ]
+        )
+        
+        raw_content = response.message.content
+        logger.info(f"🧠 [LLM Raw Output]: {raw_content}")
+        
+        # 提取 JSON 结果
+        json_match = re.search(r"\{.*\}", raw_content, re.DOTALL)
+        if not json_match:
+            logger.warning("❌ 无法从 LLM 输出中提取 JSON")
+            return query_text, {}
             
-        json_str = json_match.group()  
-        parsed_result = json.loads(json_str)  
+        json_str = json_match.group()
+        parsed_result = json.loads(json_str)
         
-        filters = parsed_result.get("filters", {})  
-        search_term = parsed_result.get("search_term", user_text)  
+        filters = parsed_result.get("filters", {})
+        search_term = parsed_result.get("search_term", query_text)
+        
+        # 键名自动修正
+        final_filters = {}
+        for k, v in filters.items():
+            # 如果是标准 Key，直接用
+            if k in ALLOWED_FILTER_KEYS:
+                final_filters[k] = v
+            # 如果是别名，查表映射
+            elif k in KEY_MAPPING:
+                correct_key = KEY_MAPPING[k]
+                final_filters[correct_key] = v
+                logger.info(f"🔧 自动修正 Key: {k} -> {correct_key}")
+            else:
+                logger.warning(f"⚠️ 丢弃未知字段: {k}")
+        
+        return search_term, final_filters
+        
+    except Exception as e:
+        logger.error(f"❌ 查询解析异常: {e}")
+        # 降级：只返回原文本，不做过滤
+        return query_text, {}
 
-        # =========================================================  
-        # 🔥 核心增强 2: 键名自动修正 (Key Correction)  
-        # 防止 LLM 输出 "组织": "心脏" 这种非标准 Key  
-        # =========================================================  
-        final_filters = {}  
-        for k, v in filters.items():  
-            # 1. 如果是标准 Key，直接用  
-            if k in ALLOWED_FILTER_KEYS:  
-                final_filters[k] = v  
-            # 2. 如果是别名（如 "组织"），查表映射回 "col_样本详细类型"  
-            elif k in KEY_MAPPING:  
-                correct_key = KEY_MAPPING[k]  
-                final_filters[correct_key] = v  
-                logger.info(f"🔧 自动修正 Key: {k} -> {correct_key}")  
-            else:  
-                logger.warning(f"⚠️ 丢弃未知字段: {k}")  
+# ==========================================
+# 统一查询解析入口
+# ==========================================
 
-        return search_term, final_filters  
-
-    except Exception as e:  
-        logger.error(f"❌ Parser 解析异常: {e}")  
-        # 降级：只返回原文本，不做过滤  
-        return user_text, {}  
+async def parse_user_query(user_text: str, auth: AuthContext = None) -> Tuple[str, Dict[str, Any], str]:
+    """
+    统一的查询解析入口
+    
+    Args:
+        user_text: 用户的自然语言查询
+        auth: 认证上下文
+        
+    Returns:
+        (搜索词, 过滤条件字典, 意图类型)
+    """
+    logger.info(f"📥 接收查询请求: {user_text}")
+    
+    # 1. 识别意图
+    intent = await intent_recognizer.recognize_intent(user_text)
+    logger.info(f"🎯 识别意图: {intent}")
+    
+    # 2. 提取关键词
+    keywords = extract_keywords(user_text)
+    logger.info(f"🔑 提取关键词: {keywords}")
+    
+    # 3. 解析查询
+    search_term, filters = await parse_query(
+        query_text=user_text,
+        intent=intent,
+        schema_context=SCHEMA_CONTEXT_CACHE
+    )
+    
+    # 4. 空搜索词兜底
+    if not search_term or not search_term.strip():
+        search_term = keywords or user_text
+        logger.info(f"🔧 空搜索词兜底: {search_term}")
+    
+    logger.info(f"✅ 查询解析完成: 搜索词='{search_term}', 过滤条件={filters}, 意图={intent}")
+    
+    return search_term, filters, intent

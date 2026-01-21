@@ -45,6 +45,10 @@ dependencies = [
     "openpyxl>=3.1.2",
     "xlrd>=2.0.1",  # 支持老版本.xls
     
+    # ==================== 新增：文件格式处理 ====================
+    "pymupdf>=1.26.7",  # PDF处理
+    "python-docx>=1.2.0",  # Word处理
+    
     # ==================== 新增：配置管理 ====================
     "pydantic>=2.5.3",
     "pydantic-settings>=2.1.0",
@@ -56,6 +60,9 @@ dependencies = [
     # ==================== 新增：工具库 ====================
     "pypinyin>=0.52.0",  # 中文列名转拼音
     "tenacity>=8.2.3",   # 重试机制
+    "jieba>=0.42.1",     # 中文分词
+    "streamlit>=1.37.0", # Web界面
+    "websockets>=16.0",  # WebSocket支持
 ]
 
 [project.optional-dependencies]
