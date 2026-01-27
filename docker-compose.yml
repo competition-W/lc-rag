@@ -36,6 +36,20 @@ services:
       timeout: 20s
       retries: 3
 
+  redis:
+    container_name: milvus-redis
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/redis:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   standalone:
     container_name: milvus-standalone
     image: milvusdb/milvus:v2.5.13-gpu
@@ -61,16 +75,48 @@ services:
       - "etcd"
       - "minio"
 
-  chatapp:
+  lc_knowledge:
     build:
       dockerfile: ./Dockerfile
       context: ./
-    container_name: retrival-chatapp
+    container_name: retrival-lc_knowledge
     volumes:
-      - ./chatapp:/chatapp
+      - ./rag:/rag
+      - ./data:/data
+      - ./.env:/.env
     ports:
       - "8849:8848"
-    # command: ["uv", "run", "rag_fusion_ctrl.py"]
+    depends_on:
+      - "redis"
+    # command: ["uv", "run", "main.py"]
+
+  celery_worker:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    container_name: retrival-celery-worker
+    volumes:
+      - ./rag:/rag
+      - ./data:/data
+      - ./.env:/.env
+    depends_on:
+      - "redis"
+      - "lc_knowledge"
+    command: ["uv", "run", "tasks/celery_app.py", "worker", "--loglevel=info"]
+
+  celery_beat:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    container_name: retrival-celery-beat
+    volumes:
+      - ./rag:/rag
+      - ./data:/data
+      - ./.env:/.env
+    depends_on:
+      - "redis"
+      - "celery_worker"
+    command: ["uv", "run", "tasks/celery_app.py", "beat", "--loglevel=info"]
 
 networks:
   default:

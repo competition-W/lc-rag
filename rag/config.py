@@ -85,14 +85,14 @@ class Settings(BaseSettings):
     MILVUS_EMBEDDING_DIM: int = 1024
     
     # ==================== Redis 配置 ====================
-    REDIS_HOST: str = "127.0.0.1" 
+    REDIS_HOST: str = "redis" 
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
     
     # ==================== Celery 配置 ====================
-    CELERY_BROKER_URL: str = "redis://127.0.0.1:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://127.0.0.1:6379/1"
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/1"
     
     # ==================== 文档处理配置 ====================
     # 文件类型映射（扩展名 -> 文档类型）
