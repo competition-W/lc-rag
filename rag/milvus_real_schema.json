@@ -1,0 +1,69 @@
+{
+    "timestamp": "2026-01-23",
+    "milvus_server": "110.1.122.1:30530",
+    "collections": [
+        {
+            "name": "dept_market",
+            "exists": true,
+            "stats": {
+                "row_count": 4412
+            },
+            "schema": {
+                "description": "",
+                "auto_id": false,
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "VARCHAR",
+                        "is_primary": true,
+                        "description": "",
+                        "dim": null,
+                        "max_length": 65535
+                    },
+                    {
+                        "name": "doc_id",
+                        "type": "VARCHAR",
+                        "is_primary": false,
+                        "description": "",
+                        "dim": null,
+                        "max_length": 65535
+                    },
+                    {
+                        "name": "text",
+                        "type": "VARCHAR",
+                        "is_primary": false,
+                        "description": "",
+                        "dim": null,
+                        "max_length": 65535
+                    },
+                    {
+                        "name": "embedding",
+                        "type": "FLOAT_VECTOR",
+                        "is_primary": false,
+                        "description": "",
+                        "dim": 1024,
+                        "max_length": null
+                    }
+                ]
+            },
+            "indexes": [
+                {
+                    "field_name": "embedding",
+                    "index_type": "IVF_FLAT",
+                    "params": {
+                        "params": {
+                            "nlist": 128
+                        },
+                        "metric_type": "COSINE",
+                        "index_type": "IVF_FLAT"
+                    }
+                }
+            ],
+            "sample_data": [
+                "id",
+                "doc_id",
+                "text"
+            ]
+        }
+    ]
+}

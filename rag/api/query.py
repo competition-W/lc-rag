@@ -92,20 +92,20 @@
 # 文件路径: /mnt/omicshub/rag/api/query.py
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
-import logging
 import uuid
 
 # ✅ 1. 引入标准响应工具
 from utils.response import success, error
 
-# ✅ 2. 引入鉴权模块
+# ✅ 2. 引入日志配置
+from utils.logger import logger
+
+# ✅ 3. 引入鉴权模块
 from utils.auth import get_auth_context, AuthContext
 
-# ✅ 3. 引入业务服务
+# ✅ 4. 引入业务服务
 from services.query_parser import parse_user_query
-from services.query_service import unified_query_service 
-
-logger = logging.getLogger(__name__)
+from services.query_service import unified_query_service
 
 # 引入WebSocket连接管理器
 from utils.websocket_manager import manager
@@ -228,7 +228,7 @@ async def streaming_search(
         logger.info(f"🚀 [Streaming API] 最终执行: Query='{real_query}' | Filters={extracted_filters}")
 
         # ================= Step 2: 统一检索 (Service) =================
-        # 调用 services.query_service，并传递WebSocket连接用于流式输出
+        # 调用 services.query_service 执行检索
         result_set = await unified_query_service(
             auth=auth,
             query_text=real_query,
@@ -236,7 +236,7 @@ async def streaming_search(
             llm_top_k=5,
             semantic_top_k=10,
             intent=intent,
-            websocket=websocket  # 传递WebSocket连接用于流式输出
+            websocket=websocket  # 传递WebSocket连接，启用流式输出
         )
         
         # ================= Step 3: 数据组装 =================

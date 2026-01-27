@@ -1,5 +1,4 @@
 import os
-import logging
 import uuid
 import asyncio
 from contextlib import asynccontextmanager
@@ -128,5 +127,5 @@ async def websocket_chat(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    # 启动服务
-    uvicorn.run(app, host="0.0.0.0", port=8088)
+    # 启动服务，使用8090端口，避免与已占用的8088端口冲突
+    uvicorn.run(app, host="0.0.0.0", port=8090)

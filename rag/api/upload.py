@@ -3,15 +3,13 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends
 import uuid
 import os
-import logging
 
 from utils.response import success, error
+from utils.logger import logger
 from utils.auth import get_auth_context, AuthContext, verify_upload_permission
 from services.minio_client import minio_client
 from tasks.document_tasks_async import process_document_task_async
 from config import settings
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["文档管理"])
 

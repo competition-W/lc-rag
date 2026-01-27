@@ -27,23 +27,57 @@ COLUMN_MAPPING = {
     # === 核心字段 ===
     "物种": "species",
     "col_物种": "species",
+    "物种1": "species",
+    "物种2": "species",
+    "物种3": "species",
     
-    "样本详细类型": "tissue",
-    "组织": "tissue",
-    "组织类型": "tissue",
-    "col_样本详细类型": "tissue",
+    "样本类型": "sample_type_exp",
+    "样本类型_exp": "sample_type_exp",
+    "样本大类": "sample_type_exp",
+    "col_样本类型": "sample_type_exp",
+    "col_样本类型_exp": "sample_type_exp",
+    "col_样本大类": "sample_type_exp",
     
-    "实验平台": "platform",
-    "平台": "platform",
-    "col_实验平台": "platform",
+    "样本详细类型": "sample_detailed_type",
+    "组织": "sample_detailed_type",
+    "组织类型": "sample_detailed_type",
+    "组织类型_prep": "sample_detailed_type",
+    "col_样本详细类型": "sample_detailed_type",
+    "col_组织": "sample_detailed_type",
+    "col_组织类型": "sample_detailed_type",
     
-    "样本大类": "category",
-    "col_样本大类": "category",
-
-    # === 处理相关 ===
+    "人工细胞注释": "annotation_results",
+    "细胞注释": "annotation_results",
+    "注释结果": "annotation_results",
+    "人工注释结果": "annotation_results",
+    "col_人工细胞注释": "annotation_results",
+    "col_细胞注释": "annotation_results",
+    "col_注释结果": "annotation_results",
+    "col_人工注释结果": "annotation_results",
+    
+    # === 实验方案 ===
+    "实验方案": "experiment_protocol",
+    "解离/抽核": "experiment_protocol",
+    "样本处理方式": "experiment_protocol",
+    "col_实验方案": "experiment_protocol",
+    "col_解离/抽核": "experiment_protocol",
+    "col_样本处理方式": "experiment_protocol",
+    
+    # === 实验平台 ===
+    "实验平台": "platform_type",
+    "平台": "platform_type",
+    "项目建库类型": "platform_type",
+    "col_实验平台": "platform_type",
+    "col_平台": "platform_type",
+    "col_项目建库类型": "platform_type",
+    
+    # === 样本保存相关 ===
     "样本保存方案": "storage_method",
+    "样本保存方式": "storage_method",
     "col_样本保存方案": "storage_method",
+    "col_样本保存方式": "storage_method",
     
+    # === 处理相关 ===
     "是否裂红": "is_lysis",
     "col_是否裂红": "is_lysis",
     
@@ -53,9 +87,74 @@ COLUMN_MAPPING = {
     "核酸质量": "rin_score",
     "col_核酸质量": "rin_score",
     
+    # === 产品信息相关 ===
+    "产品一级目录": "product_level1",
+    "产品一级": "product_level1",
+    "一级目录": "product_level1",
+    "product_level1": "product_level1",
+    
+    "产品二级目录": "product_level2",
+    "产品二级": "product_level2",
+    "二级目录": "product_level2",
+    "product_level2": "product_level2",
+    
+    "产品三级目录": "product_level3",
+    "产品三级": "product_level3",
+    "三级目录": "product_level3",
+    "product_level3": "product_level3",
+    
+    # === 样本制备信息 ===
+    "样本大类": "sample_category_prep",
+    "sample_category": "sample_category_prep",
+    "样本类别": "sample_category_prep",
+    
+    "样本类型": "sample_type_prep",
+    "sample_type": "sample_type_prep",
+    "样本类型细分": "sample_type_prep",
+    "sample_type_exp": "sample_type_prep",
+    
+    "组织类型": "tissue_type_prep",
+    "tissue_type": "tissue_type_prep",
+    "组织": "tissue_type_prep",
+    "tissue_type_prep": "tissue_type_prep",
+    "组织类型_prep": "tissue_type_prep",
+    
+    "样本处理方式": "sample_prep_method",
+    "prep_method": "sample_prep_method",
+    "实验方案": "sample_prep_method",
+    "解离/抽核": "sample_prep_method",
+    
+    # === 送样要求 ===
+    "建议送样量1": "recommended_amount_1",
+    "建议送样量2": "recommended_amount_2",
+    "建议送样量3": "recommended_amount_3",
+    
+    "定性描述1": "qualitative_description_1",
+    "定性描述2": "qualitative_description_2",
+    "定性描述3": "qualitative_description_3",
+    
+    # === 方法和注意事项 ===
+    "样本准备方法": "sample_preparation_method_doc",
+    "样本制备方法": "sample_preparation_method_doc",
+    "sample_preparation_method_doc": "sample_preparation_method_doc",
+    
+    "取样送样的注意事项": "sampling_notes",
+    "采样注意事项": "sampling_notes",
+    "注意事项": "sampling_notes",
+    "sampling_notes": "sampling_notes",
+    "handling_notes": "sampling_notes",
+    
+    "备注": "notes_full_text",
+    "完整说明": "notes_full_text",
+    "说明": "notes_full_text",
+    "notes_full_text": "notes_full_text",
+    "notes_full": "notes_full_text",
+    
     # === 其他业务字段 ===
     "送样日期": "sample_date",
-    "项目编号": "project_id"
+    "项目编号": "project_id",
+    "批次号": "batch_id",
+    "样本编号": "sample_id"
 }
 
 # 动态映射表，用于存储自动生成的映射
@@ -140,6 +239,42 @@ class ExcelProcessor(BaseDocumentProcessor):
                 df_dict = {sheet_name: pd.read_excel(file_obj, sheet_name=sheet_name, skiprows=self.skip_rows)}
             else:
                 df_dict = pd.read_excel(file_obj, sheet_name=None, skiprows=self.skip_rows)
+            
+            # ==========================================
+            # 🟢 处理重复表头：将重复的二级表头编号（如"建议送样量1"、"定性描述2"）
+            # ==========================================
+            for sheet, df in df_dict.items():
+                # 统计每个表头出现的次数
+                header_count = {}
+                new_columns = []
+                
+                for col in df.columns:
+                    col_str = str(col).strip()
+                    
+                    # 处理重复表头：只处理"建议送样量"和"定性描述"这两个表头
+                    if "建议送样量" in col_str:
+                        base_header = "建议送样量"
+                    elif "定性描述" in col_str:
+                        base_header = "定性描述"
+                    else:
+                        # 其他表头不处理
+                        new_columns.append(col_str)
+                        continue
+                    
+                    # 处理重复表头
+                    if base_header in header_count:
+                        header_count[base_header] += 1
+                        # 添加序号：建议送样量1、建议送样量2...
+                        new_col = f"{base_header}{header_count[base_header]}"
+                    else:
+                        header_count[base_header] = 1
+                        new_col = f"{base_header}{header_count[base_header]}"
+                    
+                    new_columns.append(new_col)
+                
+                # 更新DataFrame的列名
+                if new_columns:
+                    df.columns = new_columns
             
             # ==========================================
             # 🟢 自动生成并保存 Schema (此时已经是英文Key)

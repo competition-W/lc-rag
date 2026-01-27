@@ -11,7 +11,6 @@ from llama_index.core.llms import ChatMessage, MessageRole
 
 from .milvus_manager import milvus_manager
 from .prompt_manager import prompt_manager
-from .intent_recognizer import intent_recognizer
 from utils.auth import AuthContext
 from utils.logger import logger
 
@@ -28,14 +27,6 @@ except ImportError:
     # 兜底：如果没有这个文件，就用 Settings 里的
     get_embed_model = lambda **kwargs: Settings.embed_model
 
-# 用于token计数
-try:
-    import tiktoken
-except ImportError:
-    tiktoken = None
-
-
-
 _EMBED_MODEL_INIT = False
 
 def _ensure_embed_model():
@@ -47,7 +38,7 @@ def _ensure_embed_model():
         _EMBED_MODEL_INIT = True
 
 # ==========================================
-# 1. 统一检索入口 - 三阶段RAG流程
+# 1. 统一检索入口
 # ==========================================
 async def unified_query_service(
     auth: AuthContext,
@@ -59,7 +50,7 @@ async def unified_query_service(
     websocket = None
 ) -> Dict[str, Any]:
     """
-    智能检索主入口 - 实现三阶段RAG流程
+    智能检索主入口
     """
     # 重置token统计，确保每次请求的token统计都是独立的
     from utils.token_counter import token_counter
@@ -77,22 +68,46 @@ async def unified_query_service(
             "all_rows": []
         }
 
+    # 2. 路由策略：根据意图和是否有 Filters 决定走哪条路
+    search_result = {}
+    
     # 🔍 调试日志：看看 Service 到底收到了什么
     logger.info(f"🛡️ [Service] 收到请求 -> Query: '{query_text}' | Filters: {column_filters} | Intent: {intent}")
 
-    # 2. 阶段一：增强型意图识别与实体抽取 (LLM-based)
-    logger.info("🚀 进入阶段一：增强型意图识别与实体抽取")
-    parsed_query = await intent_recognizer.recognize_intent_and_filters(query_text)
-    logger.info(f"📋 意图识别结果: {json.dumps(parsed_query, ensure_ascii=False)}")
+    # 基于意图的检索策略路由
+    if intent in ["sample_query", "project_query", "query_experiment_data", "query_preparation_guidelines"]:
+        # 样本准备查询和项目经验查询：纯关键词检索
+        logger.info(f"🛤️ 命中策略: [{intent} - 纯关键词检索]")
+        # 检查是否有过滤条件
+        if column_filters and len(column_filters) > 0:
+            # 有过滤条件，使用结构化表格检索
+            search_result = await _strategy_structured_table(
+                index, query_text, auth, column_filters, llm_top_k
+            )
+        else:
+            # 没有过滤条件，使用关键词检索（不使用语义检索）
+            # 对于这两种意图，我们希望只进行关键词检索，而不是语义检索
+            # 这里我们使用一个空的过滤条件来触发结构化表格检索，使用查询文本作为关键词
+            logger.info(f"📝 对于 {intent} 意图，没有过滤条件，使用查询文本作为关键词进行检索")
+            # 调用结构化表格检索，但不使用语义检索
+            search_result = await _strategy_structured_table(
+                index, query_text, auth, {}, llm_top_k
+            )
+    else:
+        # 其他意图：根据是否有 Filters 决定走哪条路
+        logger.info(f"🛤️ 命中策略: [其他意图 - 通用检索策略]")
+        if column_filters and len(column_filters) > 0:
+            logger.info("🛤️ 子策略: [结构化表格检索]")
+            search_result = await _strategy_structured_table(
+                index, query_text, auth, column_filters, llm_top_k
+            )
+        else:
+            logger.info("🛤️ 子策略: [通用语义检索]")
+            search_result = await _strategy_general_semantic(
+                index, query_text, auth, semantic_top_k
+            )
 
-    # 3. 阶段二：Milvus 精确检索
-    logger.info("🚀 进入阶段二：Milvus 精确检索")
-    search_result = await _perform_milvus_retrieval(
-        index, query_text, auth, parsed_query, column_filters, llm_top_k
-    )
-
-    # 4. 阶段三：上下文构建与LLM响应生成
-    logger.info("🚀 进入阶段三：上下文构建与LLM响应生成")
+    # 3. 检查检索结果条数，决定是否调用LLM生成回答
     all_rows = search_result.get("all_rows", [])
     best_rows = search_result.get("best_rows", [])
     
@@ -113,7 +128,6 @@ async def unified_query_service(
         context_nodes=best_rows,
         intent=intent,
         all_retrieved_rows=all_rows,  # 传递所有检索结果用于指标聚合
-        parsed_query=parsed_query,  # 传递解析后的查询用于上下文构建
         websocket=websocket  # 传递WebSocket连接用于流式输出
     )
     
@@ -137,51 +151,13 @@ async def unified_query_service(
     
     return result
 
-# ==========================================
-# 2. 阶段二：Milvus 精确检索实现
-# ==========================================
-async def _perform_milvus_retrieval(
-    index, query_text, auth, parsed_query, column_filters, llm_top_k
-):
-    """
-    执行Milvus精确检索
-    """
-    # 获取解析后的意图和过滤条件
-    query_intent = parsed_query.get("query_intent", "unknown")
-    milvus_filters = parsed_query.get("milvus_filters", {})
-    requested_fields = parsed_query.get("requested_fields", [])
-    
-    # 根据意图添加source_table过滤
-    if query_intent == "query_experiment_data":
-        milvus_filters["source_table"] = "experiment_data"
-    elif query_intent == "query_preparation_guidelines":
-        milvus_filters["source_table"] = "preparation_guidelines"
-    
-    # 合并传统过滤条件（保持向后兼容）
-    if column_filters and len(column_filters) > 0:
-        milvus_filters.update(column_filters)
-    
-    # 添加部门过滤条件
-    milvus_filters["department"] = auth.department
-    
-    logger.info(f"📋 合并后的Milvus过滤条件: {json.dumps(milvus_filters, ensure_ascii=False)}")
-    
-    # 构建Milvus查询表达式
-    milvus_expr = intent_recognizer.build_milvus_expr(milvus_filters)
-    logger.info(f"🔍 构建的Milvus查询表达式: {milvus_expr}")
-    
-    # 使用结构化表格检索策略执行检索
-    return await _strategy_structured_table(
-        index, query_text, auth, milvus_filters, llm_top_k, milvus_expr
-    )
-
 # # ==========================================
 # # 2. LLM 生成模块
 # # ==========================================
-# async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: str = "sample_query", websocket=None) -> str:
+# async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: str = "sample_query") -> str:
 #     if not context_nodes:
 #         return "抱歉，未找到匹配的数据。"
-#     
+    
 #     # 数据扁平化
 #     context_str_list = []
 #     for idx, item in enumerate(context_nodes):
@@ -190,7 +166,7 @@ async def _perform_milvus_retrieval(
 #         for ignore_key in ['chunk_id', 'owner', 'uploader', 'full_row_json', 'doc_type', 'vector_id']:
 #             meta.pop(ignore_key, None)
 #         context_str_list.append(f"[{idx+1}] {json.dumps(meta, ensure_ascii=False)}")
-#     
+    
 #     context_text = "\n".join(context_str_list)
 
 #     system_prompt = (
@@ -212,7 +188,6 @@ async def _perform_milvus_retrieval(
 #     except Exception as e:
 #         logger.error(f"LLM 生成失败: {e}")
 #         return "已检索到数据，请查看列表。"
-
 
 def _format_node_for_llm(node_data: dict, query_text: str = "") -> str:
     """
@@ -380,16 +355,7 @@ def _aggregate_numeric_metrics(context_nodes: List[Dict], query_text: str = "") 
         "col_you_he_lv": "有效核率",
         "col_bu_huo_xi_bao_shu": "捕获细胞数",
         "col_hszl\n（rinz）": "核碎片率",
-        "col_zsjg_zztyxzs": "注释结果-组织特异性指标",
-        # 扩展映射：添加更多常见的实验指标映射
-        "col_shi_yan_zhi_biao": "实验指标",
-        "col_shi_yan_zhi_biao_1": "实验指标1",
-        "col_shi_yan_zhi_biao_2": "实验指标2",
-        "col_shi_yan_zhi_biao_3": "实验指标3",
-        "col_shu_ju_zhi_biao": "数据指标",
-        "col_shu_ju_zhi_biao_2": "数据指标2",
-        "col_yang_ben_xin_xi_3": "样本信息3",
-        "col_yang_ben_xin_xi_13": "样本信息13"
+        "col_zsjg_zztyxzs": "注释结果-组织特异性指标"
     }
     
     # 分析查询类型
@@ -465,123 +431,13 @@ def _aggregate_numeric_metrics(context_nodes: List[Dict], query_text: str = "") 
     
     return aggregate_result
 
-def get_token_count(text, model_name="gpt-4"):
-    """使用tiktoken估算文本的token数量"""
-    if not tiktoken:
-        # 兜底：如果没有tiktoken，使用粗略估算（1个token≈0.75个汉字或1.5个英文单词）
-        return len(text) // 2
-    
-    try:
-        encoding = tiktoken.encoding_for_model(model_name)
-        return len(encoding.encode(text))
-    except Exception as e:
-        logger.warning(f"❌ Token计数失败: {e}，使用粗略估算")
-        return len(text) // 2
-
-
-def format_single_document(doc, parsed_query):
-    """
-    根据文档内容和用户请求，格式化单条文档的显示。
-    基于source_table和requested_fields定制输出格式。
-    """
-    if not doc:
-        return ""
-    
-    doc_info = []
-    doc_id = doc.get("node_id", "N/A")
-    doc_info.append(f"--- 记录 ID: {doc_id} ---")
-    
-    # 获取元数据
-    metadata = doc.get("metadata", {})
-    
-    # 如果是NodeWithScore对象，获取其node的metadata
-    if hasattr(doc, 'node') and hasattr(doc.node, 'metadata'):
-        metadata = doc.node.metadata
-    
-    source_table = metadata.get("source_table", "unknown")
-    requested_fields = parsed_query.get("requested_fields", []) if parsed_query else []
-    milvus_filters = parsed_query.get("milvus_filters", {}) if parsed_query else {}
-    
-    if source_table == "experiment_data":
-        doc_info.append(f"来源: 实验数据")
-        doc_info.append(f"项目建库类型: {metadata.get('project_library_type', 'N/A')}")
-        doc_info.append(f"物种: {metadata.get('species', 'N/A')}")
-        doc_info.append(f"样本详细类型: {metadata.get('sample_detailed_type', 'N/A')}")
-        doc_info.append(f"实验方案: {metadata.get('prep_method', 'N/A')}")
-        
-        # 处理特定请求字段
-        for field in requested_fields:
-            value = metadata.get(field, "N/A")
-            if field == "annotation_results_full" or "annotation" in field.lower():
-                # 处理注释结果
-                doc_info.append(f"人工注释结果: {value}")
-            elif field == "cell_viability_percent":
-                doc_info.append(f"细胞活率: {value}%")
-            elif field == "related_article_link":
-                doc_info.append(f"相关文章链接: {value}")
-            else:
-                doc_info.append(f"{field.replace('_', ' ').title()}: {value}")
-        
-        # 如果没有requested_fields，添加一些默认的核心指标
-        if not requested_fields:
-            doc_info.append(f"细胞活率: {metadata.get('col_xi_bao_huo_lv', 'N/A')}%")
-            doc_info.append(f"捕获细胞数: {metadata.get('col_bu_huo_xi_bao_shu', 'N/A')}")
-            annotation = metadata.get('cell_annotation_result', '') or metadata.get('注释结果', '')
-            if annotation:
-                doc_info.append(f"人工注释结果: {annotation[:100]}{'...' if len(annotation) > 100 else ''}")
-    
-    elif source_table == "preparation_guidelines":
-        doc_info.append(f"来源: 样本制备指南")
-        doc_info.append(f"产品类型: {metadata.get('product_level1', 'N/A')} > {metadata.get('product_level2', 'N/A')} > {metadata.get('product_level3', 'N/A')}")
-        doc_info.append(f"样本大类: {metadata.get('sample_category', 'N/A')}")
-        doc_info.append(f"样本类型: {metadata.get('sample_type', 'N/A')}")
-        doc_info.append(f"组织类型: {metadata.get('tissue_type', 'N/A')}")
-        doc_info.append(f"制备方案: {metadata.get('prep_method', 'N/A')}")
-        doc_info.append(f"建议送样量: {metadata.get('recommended_amount_mg', 'N/A')}mg (约{metadata.get('qualitative_description_text', 'N/A')})")
-        doc_info.append(f"风险级别: {metadata.get('risk_level', 'N/A')}")
-        
-        # 处理特定请求字段
-        for field in requested_fields:
-            value = metadata.get(field, "N/A")
-            if field == "notes_full":
-                doc_info.append(f"备注: {value}")
-            elif field == "handling_notes":
-                doc_info.append(f"取样送样的注意事项: {value}")
-            elif field == "preparation_method_doc":
-                doc_info.append(f"样本准备方法SOP: {value}")
-            else:
-                doc_info.append(f"{field.replace('_', ' ').title()}: {value}")
-        
-        # 如果没有requested_fields，添加一些默认的核心信息
-        if not requested_fields:
-            doc_info.append(f"风险级别: {metadata.get('risk_level', 'N/A')}")
-            notes = metadata.get('notes_full', '') or metadata.get('备注', '')
-            if notes:
-                doc_info.append(f"备注: {notes[:100]}{'...' if len(notes) > 100 else ''}")
-    
-    else:
-        # 通用格式
-        doc_info.append(f"来源: {source_table}")
-        doc_info.append(f"样本类型: {metadata.get('sample_type', 'N/A')}")
-        doc_info.append(f"组织类型: {metadata.get('sample_detailed_type', 'N/A')}")
-        
-        # 添加核心指标
-        if "col_xi_bao_huo_lv" in metadata:
-            doc_info.append(f"细胞活率: {metadata['col_xi_bao_huo_lv']}%")
-        if "col_bu_huo_xi_bao_shu" in metadata:
-            doc_info.append(f"捕获细胞数: {metadata['col_bu_huo_xi_bao_shu']}")
-    
-    return "\n".join(doc_info)
-
-
-async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: str = "unknown", all_retrieved_rows: List[Dict] = None, parsed_query: Optional[Dict] = None, websocket=None) -> str:
+async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: str = "unknown", all_retrieved_rows: List[Dict] = None, websocket=None) -> str:
     logger.info(f"🚀 进入_generate_summary函数")
     logger.info(f"📊 context_nodes数量: {len(context_nodes)}")
     logger.info(f"📊 all_retrieved_rows数量: {len(all_retrieved_rows) if all_retrieved_rows else 0}")
     logger.info(f"🎯 意图: {intent}")
     logger.info(f"🔍 查询文本: {query_text}")
     logger.info(f"🔌 WebSocket: {websocket is not None}")
-    logger.info(f"📋 parsed_query: {json.dumps(parsed_query, ensure_ascii=False) if parsed_query else 'None'}")
     
     # 确定用于分析的数据 - 必须使用all_retrieved_rows，不能使用筛选后的context_nodes
     all_data = all_retrieved_rows if all_retrieved_rows else context_nodes
@@ -597,168 +453,93 @@ async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: 
     
     logger.info(f"📊 用于分析的数据量: {total_samples} 条 (基于所有检索数据，未做任何筛选)")
     
-    # 1. 格式化所有文档
-    logger.info("📝 开始格式化检索到的文档")
-    formatted_docs = []
-    for doc in all_data:
-        formatted_doc = format_single_document(doc, parsed_query or {})
-        if formatted_doc:
-            formatted_docs.append(formatted_doc)
+    # 1. 分析用户问题类型
+    lower_query = query_text.lower() if query_text else ""
     
-    full_formatted_context = "\n\n".join(formatted_docs)
-    logger.info(f"📊 格式化后的文档数量: {len(formatted_docs)}")
-    logger.info(f"📊 格式化后的文档总长度: {len(full_formatted_context)} 字符")
+    # 定义问题类型关键词
+    numeric_query_keywords = ["数据指标", "实验指标", "指标", "统计", "统计分析", "数值", "数值型", "数值指标"]
+    # 扩展非数值型查询关键词，增加细胞鉴定相关关键词
+    non_numeric_query_keywords = ["注释结果", "细胞注释", "注释", "结果", "如何", "怎么样", "解离", "抽核", 
+                                  "鉴定", "有没有", "存在", "T细胞", "细胞类型", "细胞", "鉴定到", "检测到", 
+                                  "包含", "含有", "有哪些", "有什么"]
     
-    # 2. 上下文长度管理策略
-    final_llm_context = ""
-    user_guidance_message = ""
-    max_context_tokens = 100000  # 默认使用较大的上下文窗口
+    # 确定查询类型
+    is_numeric_query = any(keyword in lower_query for keyword in numeric_query_keywords)
+    is_annotation_query = any(keyword in lower_query for keyword in non_numeric_query_keywords)
     
-    # 估计Prompt中其他部分的token数量，给实际数据留出空间
-    overhead_tokens = get_token_count(query_text) + 500  # 留一些Buffer给指令和LLM生成答案
-    available_context_tokens = max_context_tokens - overhead_tokens
+    # 额外检查：如果查询包含细胞类型相关关键词，强制标记为注释查询
+    cell_type_keywords = ["T细胞", "B细胞", "巨噬细胞", "心肌细胞", "内皮细胞", "免疫细胞", 
+                         "细胞", "细胞类型", "细胞亚型", "亚群"]
+    if any(keyword in lower_query for keyword in cell_type_keywords):
+        is_annotation_query = True
+        is_numeric_query = False  # 优先使用注释查询类型
     
-    logger.info(f"🧮 Token管理: 最大上下文窗口={max_context_tokens}, 可用空间={available_context_tokens}")
+    logger.info(f"🔍 查询类型分析结果: 数值型查询={is_numeric_query}, 注释/结果查询={is_annotation_query}")
     
-    # 如果所有数据能装下
-    if get_token_count(full_formatted_context) <= available_context_tokens:
-        final_llm_context = full_formatted_context
-        user_guidance_message = f"以下是您查询到的全部 {len(formatted_docs)} 条符合条件的记录的详细信息："
+    # 2. 提取关键词信息
+    keywords = []
+    if query_text:
+        keywords = re.findall(r'[\u4e00-\u9fa5]+', query_text)[:5]  # 提取前5个中文关键词
+    
+    # 3. 构建上下文
+    context_intro = f"您的查询：{query_text}\n\n"
+    context_intro += f"⚠️ 重要说明：以下分析基于所有检索到的 {total_samples} 条数据，未做任何筛选。\n"
+    
+    if keywords:
+        context_intro += f"关键词：{', '.join(keywords)}\n"
+    
+    full_context = context_intro
+    
+    # 根据查询类型构建不同的上下文
+    if is_numeric_query:
+        # 数值型查询：生成包含统计分析的表格
+        logger.info("📊 数值型查询，生成包含统计分析的表格")
+        # 首先获取统计汇总数据，传入query_text用于区分数据指标和实验指标
+        aggregate_text = _aggregate_numeric_metrics(all_data, query_text)
+        # 然后构建包含所有检索结果的详细信息，用于评价分析
+        detailed_info_text = "\n\n**所有检索结果详细信息**\n"
+        for idx, item in enumerate(all_data[:10]):  # 最多显示前10个，避免上下文过长
+            meta = item.get("metadata", {})
+            formatted_text = _format_node_for_llm(meta, query_text)
+            detailed_info_text += f"【样本 {idx+1}】\n{formatted_text}\n\n"
+        if len(all_data) > 10:
+            detailed_info_text += f"... 还有 {len(all_data) - 10} 条数据未显示，完整统计基于所有 {total_samples} 条数据\n"
+        full_context += aggregate_text + detailed_info_text
+    elif is_annotation_query or "注释" in lower_query or "结果" in lower_query:
+        # 非数值型查询：展开所有相关结果
+        logger.info("📝 非数值型查询，展开所有相关结果")
+        result_str_list = []
+        for idx, item in enumerate(all_data):
+            meta = item.get("metadata", {})
+            # 使用专门的格式化函数，提取相关数据
+            formatted_text = _format_node_for_llm(meta, query_text)
+            result_str_list.append(f"【结果 {idx+1}】\n{formatted_text}")
+        result_text = "\n\n".join(result_str_list)
+        full_context += result_text
     else:
-        # 策略：展示前N条详细信息 + 剩余数据的概览
-        logger.info("📏 上下文过长，需要进行截断处理")
-        
-        num_docs_to_show_detail = 5  # 默认显示前5条详细记录
-        detailed_part_tokens = 0
-        detailed_docs_count = 0
-        detailed_context_parts = []
-        
-        # 动态决定显示多少条详细记录，确保不超过上下文限制
-        for doc_part in formatted_docs:
-            if detailed_part_tokens + get_token_count(doc_part) < available_context_tokens * 0.5:  # 详细部分最多占一半上下文
-                detailed_context_parts.append(doc_part)
-                detailed_part_tokens += get_token_count(doc_part)
-                detailed_docs_count += 1
-            else:
-                break
-        
-        detail_context = "\n\n".join(detailed_context_parts)
-        remaining_docs = all_data[detailed_docs_count:]
-        
-        logger.info(f"📋 显示前{detailed_docs_count}条详细记录，剩余{len(remaining_docs)}条记录")
-        
-        # 生成剩余数据的概览
-        summary_of_remaining = []
-        if remaining_docs:
-            summary_of_remaining.append(f"\n\n--- 剩余 {len(remaining_docs)} 条记录概览 ---")
-            
-            # 对剩余文档进行统计性概括
-            # 收集所有相关数值字段的值
-            numeric_fields = [
-                "col_xbzl\n（w）", "col_jie_tuan_lv", "col_xi_bao_huo_lv",
-                "col_you_he_lv", "col_bu_huo_xi_bao_shu",
-                "col_ji_yin_zhong_wei_shu", "col_shu_ju_liang"
-            ]
-            
-            for field in numeric_fields:
-                values = []
-                for doc in remaining_docs:
-                    metadata = doc.get("metadata", {})
-                    # 如果是NodeWithScore对象，获取其node的metadata
-                    if hasattr(doc, 'node') and hasattr(doc.node, 'metadata'):
-                        metadata = doc.node.metadata
-                    
-                    value = metadata.get(field)
-                    if value is not None and value != "" and value != "/" and value != "(空)":
-                        try:
-                            clean_value = str(value).strip().replace(",", "")
-                            num_value = float(clean_value)
-                            values.append(num_value)
-                        except (ValueError, TypeError):
-                            continue
-                
-                if values:
-                    sample_count = len(values)
-                    avg_val = sum(values) / sample_count
-                    min_val = min(values)
-                    max_val = max(values)
-                    sorted_values = sorted(values)
-                    mid_index = sample_count // 2
-                    median_val = sorted_values[mid_index] if sample_count % 2 == 1 else (sorted_values[mid_index - 1] + sorted_values[mid_index]) / 2
-                    
-                    # 定义指标名称映射
-                    metric_name_mapping = {
-                        "col_xbzl\n（w）": "细胞总量",
-                        "col_jie_tuan_lv": "结团率",
-                        "col_xi_bao_huo_lv": "细胞活率",
-                        "col_you_he_lv": "有效核率",
-                        "col_bu_huo_xi_bao_shu": "捕获细胞数",
-                        "col_ji_yin_zhong_wei_shu": "基因中位数",
-                        "col_shu_ju_liang": "数据量"
-                    }
-                    
-                    display_name = metric_name_mapping.get(field, field)
-                    summary_of_remaining.append(f"{display_name}: 平均值 {avg_val:.2f}, 范围 [{min_val:.2f}, {max_val:.2f}], 中位数 {median_val:.2f} (基于{sample_count}条记录)")
-            
-            # 对于分类字段，可以列出最常见的几个
-            categorical_fields = ['species', 'sample_detailed_type', 'prep_method']
-            for field in categorical_fields:
-                values = []
-                for doc in remaining_docs:
-                    metadata = doc.get("metadata", {})
-                    if hasattr(doc, 'node') and hasattr(doc.node, 'metadata'):
-                        metadata = doc.node.metadata
-                    
-                    value = metadata.get(field)
-                    if value is not None and value != "":
-                        values.append(value)
-                
-                if values:
-                    from collections import Counter
-                    counts = Counter(values)
-                    most_common = counts.most_common(3)  # 最常见的3个
-                    summary_of_remaining.append(f"{field}: 主要包括 {', '.join([f'{k} ({v}条)' for k, v in most_common])} 等")
-            
-            summary_of_remaining.append("更多详细信息请尝试更精确的查询。")
-        
-        summary_context = "\n".join(summary_of_remaining)
-        
-        # 再次检查，确保详细部分和概览部分加起来不超过上下文
-        if get_token_count(detail_context + "\n" + summary_context) > available_context_tokens:
-            # 进一步截断概览部分
-            max_summary_tokens = available_context_tokens - get_token_count(detail_context)
-            # 粗略估算summary_context的截断位置
-            summary_context = summary_context[:int(max_summary_tokens * 2)]  # 假设每个token平均2个字符
-            summary_context += "...\n(概览部分过长，已截断)"
-        
-        final_llm_context = detail_context + "\n\n" + summary_context
-        
-        user_guidance_message = (
-            f"检测到 {len(formatted_docs)} 条符合条件的记录。由于数据量庞大，"
-            f"以下为您展示了前 {detailed_docs_count} 条记录的详细信息，并对剩余 {len(remaining_docs)} 条记录进行了概括。"
-        )
+        # 默认情况：生成包含统计分析的表格
+        logger.info("📊 默认情况，生成包含统计分析的表格")
+        aggregate_text = _aggregate_numeric_metrics(all_data, query_text)
+        full_context += aggregate_text
     
+    # 输出提取的实验指标结果到控制台，方便调试
+    logger.info(f"\n🔍 提取的实验指标结果:\n{full_context}")
+
     # 3. 根据查询类型动态选择提示词意图
     # 告诉模型：怎么读数据、怎么组织语言
-    if parsed_query and parsed_query.get("query_intent") == "query_experiment_data":
-        prompt_config = prompt_manager.get_prompt("query_experiment_data")
-    elif parsed_query and parsed_query.get("query_intent") == "query_preparation_guidelines":
-        prompt_config = prompt_manager.get_prompt("query_preparation_guidelines")
+    if is_annotation_query:
+        # 注释/细胞鉴定查询使用专门的提示词
+        prompt_config = prompt_manager.get_prompt("annotation_query")
     else:
-        # 基于关键词判断是否为注释查询
-        lower_query = query_text.lower() if query_text else ""
-        is_annotation_query = any(keyword in lower_query for keyword in ["注释", "细胞类型", "鉴定", "T细胞", "B细胞", "巨噬细胞"])
-        if is_annotation_query:
-            prompt_config = prompt_manager.get_prompt("annotation_query")
-        else:
-            prompt_config = prompt_manager.get_prompt(intent)
+        # 其他查询使用原有的意图
+        prompt_config = prompt_manager.get_prompt(intent)
     
     # 构建用户提示词
     user_prompt = (
         f"用户问题: {query_text}\n"
         f"\n"
         f"【数据库检索结果】:\n"
-        f"{final_llm_context}"
+        f"{full_context}"
     )
 
     try:
@@ -817,9 +598,13 @@ async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: 
                     await websocket.send_json({"type": "content", "value": answer})
                     await websocket.send_json({"type": "end_of_stream", "status": "success"})
             
-            # 获取token统计信息
+            # 统计LLM tokens消耗
             from utils.token_counter import token_counter
-            token_stats = token_counter.get_total_stats()
+            token_counter.count_llm_tokens(
+                input_text=full_prompt,
+                output_text=answer,
+                model_name=llm_instance.model_name
+            )
             
             return answer
         except Exception as e:
@@ -847,7 +632,49 @@ async def _generate_summary(query_text: str, context_nodes: List[Dict], intent: 
 # ==========================================
 # 3. 策略 A: 结构化表格检索 (纯过滤)
 # ==========================================
-async def _strategy_structured_table(index, query_text, auth, column_filters, llm_top_k, milvus_expr=None):
+# async def _strategy_structured_table(index, query_text, auth, column_filters, llm_top_k):
+#     # 1. 构建 Filter
+#     # 强制加上部门隔离
+#     filters_list = [
+#         MetadataFilter(key="department", operator=FilterOperator.EQ, value=auth.department)
+#     ]
+#     # 加上用户的筛选条件
+#     for k, v in column_filters.items():
+#         # 注意：Milvus 的 EQ 是精确匹配，大小写敏感
+#         filters_list.append(MetadataFilter(key=k, operator=FilterOperator.EQ, value=v))
+    
+#     metadata_filters = MetadataFilters(filters=filters_list, condition="and") # 确保是 AND 关系
+    
+#     # 2. 如果 query_text 为空（说明用户只说了筛选条件，比如"列出所有小鼠数据"）
+#     # 我们使用 "*" 或 " " 进行全量匹配，不依赖向量相似度
+#     is_pure_filter = not (query_text and query_text.strip())
+#     search_text = query_text if not is_pure_filter else " " 
+
+#     # 3. 执行检索 (Retrieval)
+#     # 对于表格模式，我们希望尽可能多地拿回数据，然后让前端分页，所以取 2000
+#     retriever = index.as_retriever(similarity_top_k=2000, filters=metadata_filters)
+#     all_nodes = await retriever.aretrieve(search_text)
+    
+#     logger.info(f"📊 [Table] 过滤命中: {len(all_nodes)} 条数据")
+
+#     # 4. 挑选 best_rows (用于 LLM)
+#     best_nodes = []
+#     if is_pure_filter:
+#         # 如果没有文本查询，Rerank 没意义，直接取前 N 条
+#         best_nodes = all_nodes[:llm_top_k]
+#     else:
+#         # 如果有文本意图，才进行 Rerank
+#         best_nodes = await _perform_rerank(query_text, all_nodes[:100], llm_top_k)
+
+#     return {
+#         "mode": "table",
+#         "all_rows": _format_nodes(all_nodes, keep_full_json=True),
+#         "best_rows": _format_nodes(best_nodes, keep_full_json=False)
+#     }
+
+# 上面注释的那一版对于意图识别的结果太严格了，如果没有检索到完全符合意图识别的结果就把数据丢弃了
+# 逻辑变更：如果“带关键词的检索”结果为 0，但只要有 Filters，我们就立刻扔掉关键词，直接把符合 Filter 的所有数据全捞出来（兜底）。
+async def _strategy_structured_table(index, query_text, auth, column_filters, llm_top_k):
     # 1. 构建 LlamaIndex MetadataFilters
     logger.info(f"🔍 原始过滤条件: {column_filters}")
     
@@ -860,18 +687,11 @@ async def _strategy_structured_table(index, query_text, auth, column_filters, ll
     for k, v in column_filters.items():
         if v != "*":
             logger.info(f"🔍 处理过滤条件: '{k}' = '{v}'")
-            
-            # 检查值类型，跳过布尔值字段（LlamaIndex的MetadataFilter不支持布尔值）
-            if isinstance(v, bool):
-                logger.warning(f"⚠️ 过滤值 '{v}' 是布尔类型，LlamaIndex不支持布尔值过滤，跳过此条件")
-                continue
-            
             # 检查字段名是否包含特殊字符（换行符、中文括号等）
             has_special_chars = any(c in k for c in ['\n', '\r', '\t', '（', '）'])
             if has_special_chars:
                 logger.warning(f"⚠️ 字段名 '{k}' 包含特殊字符，跳过 LlamaIndex 过滤")
                 continue
-            
             filters_list.append(MetadataFilter(key=k, operator=FilterOperator.EQ, value=v))
             logger.info(f"✅ 添加过滤条件: {k} == {v}")
     
@@ -881,8 +701,6 @@ async def _strategy_structured_table(index, query_text, auth, column_filters, ll
     
     # 2. 使用 LlamaIndex 索引进行检索
     all_nodes = []
-    
-    # 第一步：使用完整过滤条件进行检索
     try:
         # 创建检索器 - 移除数量限制，获取所有匹配结果
         retriever = index.as_retriever(
@@ -897,182 +715,160 @@ async def _strategy_structured_table(index, query_text, auth, column_filters, ll
         
         all_nodes = await retriever.aretrieve(search_text)
         logger.info(f"✅ LlamaIndex 检索命中: {len(all_nodes)} 条数据")
+        
+        # 3. 如果检索结果为空，尝试移除可能有问题的字段
+        if not all_nodes and len(filters_list) > 1:
+            logger.info(f"⚠️ LlamaIndex 检索命中 0 条，尝试移除可能有问题的字段")
+            
+            # 构建移除特殊字段后的过滤条件
+            simplified_filters = [
+                MetadataFilter(key="department", operator=FilterOperator.EQ, value=auth.department)
+            ]
+            
+            for k, v in column_filters.items():
+                if v != "*" and 'syfa' not in k.lower():
+                    # 检查字段名是否包含特殊字符（换行符、中文括号等）
+                    has_special_chars = any(c in k for c in ['\n', '\r', '\t', '（', '）'])
+                    if has_special_chars:
+                        logger.warning(f"⚠️ 简化检索：字段名 '{k}' 包含特殊字符，跳过")
+                        continue
+                    # 跳过实验方案字段和包含特殊字符的字段
+                    simplified_filters.append(MetadataFilter(key=k, operator=FilterOperator.EQ, value=v))
+            
+            simplified_metadata_filters = MetadataFilters(filters=simplified_filters, condition="and")
+            logger.info(f"✅ 构建完成简化 MetadataFilters")
+            
+            # 执行简化检索
+            simplified_retriever = index.as_retriever(
+                similarity_top_k=1000,
+                filters=simplified_metadata_filters
+            )
+            
+            all_nodes = await simplified_retriever.aretrieve(search_text)
+            logger.info(f"✅ 简化检索命中: {len(all_nodes)} 条数据")
     except Exception as e:
-        logger.error(f"❌ 第一步检索失败: {str(e)}")
-    
-    # 第二步：如果第一步没有返回结果，尝试使用 PyMilvus API 进行精确查询
-    if not all_nodes and milvus_expr:
+        logger.error(f"❌ 检索失败: {str(e)}")
+        # 如果 LlamaIndex 检索失败，尝试使用原始的 PyMilvus API 方法
+        logger.info("📝 降级使用 PyMilvus API")
+        
+        # 构建 PyMilvus 查询表达式，处理特殊字符
+        expr_parts = [f"department == '{auth.department}'"]
+        
+        for k, v in column_filters.items():
+            if v != "*":
+                # 检查字段名是否包含特殊字符
+                has_special_chars = any(c in k for c in ['\n', '\r', '\t', '（', '）'])
+                if has_special_chars:
+                    # 对于包含特殊字符的字段，使用反引号包裹
+                    expr_parts.append(f"`{k}` == '{v}'")
+                    logger.info(f"✅ PyMilvus 添加带反引号的过滤条件: `{k}` == '{v}'")
+                elif 'syfa' not in k.lower():
+                    # 普通字段直接添加
+                    expr_parts.append(f"{k} == '{v}'")
+                    logger.info(f"✅ PyMilvus 添加普通过滤条件: {k} == '{v}'")
+        
+        milvus_expr = " and ".join(expr_parts)
+        logger.info(f"🔍 构建 PyMilvus 查询表达式: {milvus_expr}")
+        
+        # 直接使用 PyMilvus API 查询数据
+        from pymilvus import connections, Collection
+        from config import settings
+        
+        # 清理旧连接
         try:
-            logger.info(f"📝 使用 PyMilvus API 进行精确查询")
+            if connections.has_connection("default"):
+                connections.disconnect("default")
+        except Exception:
+            pass
+        
+        # 重新连接 Milvus
+        logger.info(f"🔍 连接 Milvus: {settings.MILVUS_HOST}:{settings.MILVUS_PORT}")
+        connections.connect(
+            alias="default",
+            host=settings.MILVUS_HOST,
+            port=settings.MILVUS_PORT,
+            timeout=30
+        )
+        logger.info(f"✅ Milvus 连接成功")
+        
+        # 获取集合
+        collection = Collection("dept_market")
+        logger.info(f"✅ 成功获取集合")
+        
+        # 执行查询
+        logger.info(f"🔍 执行 PyMilvus 查询: {milvus_expr}")
+        query_results = collection.query(
+            expr=milvus_expr,
+            output_fields=["*"],
+            limit=1000
+        )
+        logger.info(f"✅ PyMilvus 查询命中: {len(query_results)} 条数据")
+        
+        # 如果有结果，转换为 LlamaIndex Node 格式
+        if query_results:
+            for result in query_results:
+                # 从查询结果构建 TextNode
+                from llama_index.core.schema import TextNode
+                text_node = TextNode(
+                    text=result.get("text", ""),
+                    metadata=result,
+                    id_=result.get("id", ""),
+                    excluded_embed_metadata_keys=[],
+                    excluded_llm_metadata_keys=[]
+                )
+                # 添加分数（直接查询没有相似度分数，设置为1.0）
+                all_nodes.append(NodeWithScore(node=text_node, score=1.0))
+        
+        # 断开连接
+        connections.disconnect("default")
+        
+    except Exception as e:
+        logger.error(f"❌ 直接查询失败: {e}")
+        # 降级：使用更简单的 LlamaIndex 检索器，不使用复杂的过滤条件
+        # 1. 构建 Filter
+        filters_list = [
+            MetadataFilter(key="department", operator=FilterOperator.EQ, value=auth.department)
+        ]
+        
+        # 只添加不包含特殊字符的过滤条件，提高成功率
+        for k, v in main_filters:
+            filters_list.append(MetadataFilter(key=k, operator=FilterOperator.EQ, value=v))
+        
+        metadata_filters = MetadataFilters(filters=filters_list, condition="and")
+        
+        # 2. 尝试使用不同的搜索词
+        search_texts = ["数据", "实验", "样本", "小鼠", "心脏"]
+        
+        for search_text in search_texts:
+            logger.info(f"📝 降级尝试: 使用搜索词 '{search_text}'")
+            retriever = index.as_retriever(similarity_top_k=10000, filters=metadata_filters)
+            nodes = await retriever.aretrieve(search_text)
+            logger.info(f"📊 搜索词 '{search_text}' 命中: {len(nodes)} 条数据")
             
-            # 直接使用 PyMilvus API 查询数据
-            from pymilvus import connections, Collection
-            from config import settings
+            if len(nodes) > len(all_nodes):
+                all_nodes = nodes
             
-            # 清理旧连接
-            try:
-                if connections.has_connection("default"):
-                    connections.disconnect("default")
-            except Exception:
-                pass
-            
-            # 重新连接 Milvus
-            logger.info(f"🔍 连接 Milvus: {settings.MILVUS_HOST}:{settings.MILVUS_PORT}")
-            connections.connect(
-                alias="default",
-                host=settings.MILVUS_HOST,
-                port=settings.MILVUS_PORT,
-                timeout=30
-            )
-            logger.info(f"✅ Milvus 连接成功")
-            
-            # 获取集合
-            collection = Collection("dept_market")
-            logger.info(f"✅ 成功获取集合")
-            
-            # 执行查询
-            logger.info(f"🔍 执行 PyMilvus 查询，表达式: {milvus_expr}")
-            query_results = collection.query(
-                expr=milvus_expr,
-                output_fields=["*"],
-                limit=1000
-            )
-            logger.info(f"✅ PyMilvus 查询命中: {len(query_results)} 条数据")
-            
-            # 如果有结果，转换为 LlamaIndex Node 格式
-            if query_results:
-                # 转换为 LlamaIndex Node 格式
-                for result in query_results:
-                    # 从查询结果构建 TextNode
-                    from llama_index.core.schema import TextNode
-                    text_node = TextNode(
-                        text=result.get("text", ""),
-                        metadata=result,
-                        id_=result.get("id", ""),
-                        excluded_embed_metadata_keys=[],
-                        excluded_llm_metadata_keys=[]
-                    )
-                    # 添加分数（直接查询没有相似度分数，设置为1.0）
-                    all_nodes.append(NodeWithScore(node=text_node, score=1.0))
-            
-            # 断开连接
-            connections.disconnect("default")
-        except Exception as e:
-            logger.error(f"❌ 第二步检索失败: {e}")
-    
-    # 第三步：如果前两步没有返回结果，尝试只使用部门过滤，然后在检索结果中进行文本匹配
-    if not all_nodes:
-        try:
-            logger.info(f"⚠️ 完整过滤条件未返回结果，尝试只使用部门过滤")
-            
-            # 只使用部门过滤
-            department_only_filters = MetadataFilters(filters=[
-                MetadataFilter(key="department", operator=FilterOperator.EQ, value=auth.department)
-            ], condition="and")
-            
-            # 创建检索器
-            retriever = index.as_retriever(
-                similarity_top_k=10000,
-                filters=department_only_filters
-            )
-            
-            # 执行检索
-            search_text = query_text if query_text and query_text.strip() else " "
-            logger.info(f"🔍 执行部门过滤检索，搜索词: '{search_text}'")
-            
-            all_nodes = await retriever.aretrieve(search_text)
-            logger.info(f"✅ 部门过滤检索命中: {len(all_nodes)} 条数据")
-            
-            # 如果找到了结果，在结果中进行文本匹配，筛选出包含关键词的结果
-            if all_nodes:
-                logger.info(f"📝 在检索结果中进行文本匹配")
-                filtered_nodes = []
-                
-                # 提取查询文本中的关键词
-                keywords = [w for w in re.findall(r'[\u4e00-\u9fa5]+', query_text) if len(w) > 1]
-                if not keywords:
-                    keywords = ["小鼠", "心脏", "实验指标"]
-                
-                for node in all_nodes:
-                    # 获取节点的文本和元数据
-                    node_text = node.text if hasattr(node, 'text') else node.node.text
-                    node_metadata = node.metadata if hasattr(node, 'metadata') else node.node.metadata
-                    
-                    # 合并文本和元数据，进行关键词匹配
-                    combined_text = f"{node_text} {json.dumps(node_metadata, ensure_ascii=False)}"
-                    
-                    # 检查是否包含所有关键词
-                    if any(keyword in combined_text for keyword in keywords):
-                        filtered_nodes.append(node)
-                
-                all_nodes = filtered_nodes
-                logger.info(f"✅ 文本匹配后剩余: {len(all_nodes)} 条数据")
-        except Exception as e:
-            logger.error(f"❌ 第三步检索失败: {str(e)}")
-    
-    # 第四步：如果前三步都没有返回结果，尝试使用查询文本进行语义检索
-    if not all_nodes:
-        try:
-            logger.info(f"⚠️ 所有过滤条件都未返回结果，尝试使用查询文本进行语义检索")
-            
-            # 只使用部门过滤
-            department_only_filters = MetadataFilters(filters=[
-                MetadataFilter(key="department", operator=FilterOperator.EQ, value=auth.department)
-            ], condition="and")
-            
-            # 创建检索器，不使用复杂的过滤条件
-            retriever = index.as_retriever(
-                similarity_top_k=10000,
-                filters=department_only_filters
-            )
-            
-            # 使用查询文本进行语义检索
-            search_text = query_text if query_text and query_text.strip() else "数据"
-            logger.info(f"🔍 执行语义检索，搜索词: '{search_text}'")
-            
-            all_nodes = await retriever.aretrieve(search_text)
-            logger.info(f"✅ 语义检索命中: {len(all_nodes)} 条数据")
-        except Exception as e:
-            logger.error(f"❌ 第四步检索失败: {str(e)}")
+            # 如果已经找到足够的结果，就停止尝试
+            if len(all_nodes) > 0:
+                break
+        
+        logger.info(f"📊 降级检索最终命中: {len(all_nodes)} 条数据")
     
     logger.info(f"📊 [Table] 最终检索命中: {len(all_nodes)} 条数据")
 
-    # 3. 样本去重：优化去重逻辑，避免过度去重
-    unique_nodes = []
-    seen_rows = set()  # 使用更独特的标识符组合：(filename, sheet_name, row_index, chunk_id)，避免同一文件的多行数据被过度去重
-    
-    for node in all_nodes:
-        metadata = node.node.metadata if hasattr(node, 'node') else node.get('metadata', {})
-        
-        # 提取更独特的标识符组合，确保同一文件的不同行能被正确保留
-        filename = metadata.get('filename', 'Unknown')
-        sheet_name = metadata.get('sheet_name', 'Unknown')
-        row_index = str(metadata.get('row_index', 'Unknown'))
-        chunk_id = str(metadata.get('chunk_id', 'Unknown'))
-        
-        # 创建更独特的行标识
-        row_key = (filename, sheet_name, row_index, chunk_id)
-        
-        # 如果是第一次遇到这个行，添加到结果中
-        if row_key not in seen_rows:
-            seen_rows.add(row_key)
-            unique_nodes.append(node)
-    
-    logger.info(f"📊 去重后剩余: {len(unique_nodes)} 条数据")
-
-    # 4. 挑选 best_rows (用于 LLM)
+    # 4. 挑选 best_rows
     best_nodes = []
     
-    # 返回所有去重后的结果，不限制数量
-    if unique_nodes:
-        best_nodes = unique_nodes
-        logger.info(f"📝 直接返回去重后的所有 {len(best_nodes)} 条数据")
+    # 直接返回所有数据，不做复杂处理
+    if all_nodes:
+        best_nodes = all_nodes[:llm_top_k]
+        logger.info(f"📝 直接返回前 {len(best_nodes)} 条数据")
     else:
         best_nodes = []
 
     return {
         "mode": "table",
-        "all_rows": _format_nodes(unique_nodes, keep_full_json=True),
+        "all_rows": _format_nodes(all_nodes, keep_full_json=True),
         "best_rows": _format_nodes(best_nodes, keep_full_json=False)
     }
 
@@ -1086,7 +882,8 @@ async def _strategy_general_semantic(index, query_text, auth, top_k):
     ])
     
     # 扩大检索范围 (Retrieve) -> 重排序 (Rerank)
-    retriever = index.as_retriever(similarity_top_k=top_k*4, filters=filters)
+    # 设置一个很大的值，确保获取所有匹配结果用于统计分析
+    retriever = index.as_retriever(similarity_top_k=10000, filters=filters)
     candidate_nodes = await retriever.aretrieve(query_text)
     
     logger.info(f"🔍 [Semantic] 初筛命中: {len(candidate_nodes)} 条 -> 准备 Rerank")
@@ -1130,6 +927,16 @@ async def _perform_rerank(query, nodes, top_n):
         
         from fastapi.concurrency import run_in_threadpool
         results = await run_in_threadpool(reranker.postprocess_nodes, nodes=nodes, query_str=query)
+        
+        # 统计Rerank tokens消耗
+        from utils.token_counter import token_counter
+        # 提取文档文本
+        docs = [node.text for node in nodes if hasattr(node, 'text')]
+        token_counter.count_rerank_tokens(
+            query=query,
+            documents=docs,
+            model_name="gte-rerank-v2"
+        )
         
         return results
     except Exception as e:

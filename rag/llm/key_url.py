@@ -1,7 +1,8 @@
 import os
 
 ##########阿里百炼
-os.environ["DASHSCOPE_API_KEY"] = "sk-719f329c00dc4d42ab1edd99fc011aea"
+# os.environ["DASHSCOPE_API_KEY"] = "sk-719f329c00dc4d42ab1edd99fc011aea"
+os.environ["DASHSCOPE_API_KEY"] = "sk-b285c03d1bf0401a977132de909f89ed"
 
 os.environ["DASHSCOPE_BASE_URL"] = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 

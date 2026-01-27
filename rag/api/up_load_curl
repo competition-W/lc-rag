@@ -1,6 +1,8 @@
 # 上传前需要启动celery异步任务队列
 venv\Scripts\activate; celery -A tasks.celery_app worker --loglevel=info -P solo
+celery -A tasks.celery_app worker --loglevel=info --concurrency=4 -P solo
 
+ cd d:/LC-BIO/lc-rag-V2/rag ; celery -A tasks.celery_app worker --loglevel=info --pool=solo
 curl -X 'POST' \
   'http://127.0.0.1:8088/documents/upload' \
   -H 'accept: application/json' \
@@ -16,7 +18,11 @@ curl.exe -X POST `
     -H "accept: application/json" `
     -H "X-User-ID: test_user" `
     -H "X-Department: market" `
-    -F "file=@test_data\test.xlsx" `
+    -F "file=@D:\LC-BIO\lc-rag-V2\rag\test_data\20260114-单细胞时空组学标准化材料表格梳理.xlsx" `
     -F "target_dept=market" `
-    http://127.0.0.1:8088/documents/upload
+    http://127.0.0.1:8090/documents/upload
+
+    D:\LC-BIO\lc-rag-V2\rag\test_data\20260114-单细胞时空组学标准化材料表格梳理.xlsx
+    rag\test_data\20260114-单细胞时空组学标准化材料表格梳理.xlsx
+    D:\LC-BIO\lc-rag-V2\rag\test_data\20260114-单细胞时空组学标准化材料表格梳理.xlsx
 

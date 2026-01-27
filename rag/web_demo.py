@@ -13,9 +13,9 @@ from utils.logger import logger
 
 # ================= 配置区域 =================
 # 后端 API 地址 (根据你的实际情况修改 IP 和端口)
-API_URL = "http://127.0.0.1:8088/query"
+API_URL = "http://127.0.0.1:8090/query"
 # WebSocket地址
-WS_URL = "ws://127.0.0.1:8088/query/ws"
+WS_URL = "ws://127.0.0.1:8090/query/ws"
 # 如果有鉴权，这里填入临时的 Bearer Token，或者在页面侧边栏输入
 DEFAULT_TOKEN = "your_temp_token_here"
 DEFAULT_USER_ID = "1"  # 假设用户 ID 为 1，如果有其他来源，可以在这里修改
@@ -187,6 +187,8 @@ if prompt := st.chat_input("请输入问题，例如：帮我找小鼠心脏的�
                             
                             # 检查all_rows的结构，确保不包含LLM回答
                             data = res_json.get("data", {})
+                            if data is None:
+                                data = {}
                             all_rows = data.get("all_rows", [])
                             logger.info(f"📋 all_rows类型: {type(all_rows)}, 长度: {len(all_rows)}")
                             if all_rows:

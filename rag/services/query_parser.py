@@ -3,19 +3,17 @@
     负责将用户的自然语言查询转换为结构化的搜索请求
 """
 import json
-import logging
 import os
 import re 
 from typing import Tuple, Dict, Any, List
 from llama_index.core import Settings
 from llama_index.core.llms import ChatMessage, MessageRole
 from utils.auth import AuthContext
+from utils.logger import logger
 
 # 导入新创建的模块
 from .prompt_manager import prompt_manager
 from .intent_recognizer import intent_recognizer
-
-logger = logging.getLogger(__name__)
 
 # =========================================================
 # 备用数据：当 JSON 里读不到值时，使用这个列表兜底
@@ -93,9 +91,12 @@ FALLBACK_SPECIES = ["人", "小鼠", "大鼠", "猕猴", "绵羊","山羊","羊"
 # ==========================================
 ALLOWED_FILTER_KEYS = [
     "species",          # 对应原来的 col_物种
-    "tissue",           # 对应 col_样本详细类型
-    "platform",         # 对应 col_实验平台
-    "category",         # 对应 col_样本大类
+    "tissue",           # 兼容旧字段名
+    "sample_detailed_type", # 对应样本详细类型/组织/组织类型（与 process.md 一致）
+    "platform",         # 兼容旧字段名
+    "project_library_type", # 对应项目建库类型/实验平台/平台（与 process.md 一致）
+    "category",         # 兼容旧字段名
+    "sample_category",  # 对应样本大类（与 process.md 一致）
     "storage_method",   # 对应 col_样本保存方案
     "is_lysis",         # 对应 col_是否裂红
     "is_dead_removal",  # 对应 col_是否去死
@@ -129,16 +130,32 @@ KEY_MAPPING = {
     "样本详细类型": "tissue",
     "部位": "tissue",
     "col_样本详细类型": "tissue",
+    # 新字段名映射
+    "组织": "sample_detailed_type",
+    "组织类型": "sample_detailed_type",
+    "样本类型": "sample_detailed_type",
+    "样本详细类型": "sample_detailed_type",
+    "部位": "sample_detailed_type",
+    "col_样本详细类型": "sample_detailed_type",
+    "col_组织": "sample_detailed_type",
+    "col_组织类型": "sample_detailed_type",
 
     # === 平台 ===
     "平台": "platform",
     "实验平台": "platform",
     "col_实验平台": "platform",
+    # 新字段名映射
+    "项目建库类型": "project_library_type",
+    "实验平台": "project_library_type",
+    "平台": "project_library_type",
+    "col_项目建库类型": "project_library_type",
+    "col_实验平台": "project_library_type",
+    "col_平台": "project_library_type",
 
-    # === 大类 ===
+    # === 样本大类 ===
     "大类": "category",
-    "样本大类": "category",
-    "col_样本大类": "category",
+    "样本大类": "sample_category",
+    "col_样本大类": "sample_category",
 
     # === 保存方案 ===
     "保存方案": "storage_method",
@@ -269,7 +286,7 @@ async def parse_query(query_text: str, intent: str, schema_context: str) -> Tupl
         搜索词和过滤条件字典
     """
     # 对于样本准备查询和项目经验查询，使用纯关键词提取
-    if intent in ["sample_query", "project_query"]:
+    if intent in ["sample_query", "project_query", "query_experiment_data", "query_preparation_guidelines"]:
         logger.info(f"🔑 [{intent}] 使用纯关键词提取策略")
         
         # 1. 提取关键词
@@ -403,14 +420,20 @@ async def parse_query(query_text: str, intent: str, schema_context: str) -> Tupl
     
     try:
         # 调用 LLM 生成结构化查询
-        response = await Settings.llm.achat(
-            messages=[
-                ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
-                ChatMessage(role=MessageRole.USER, content=query_text)
-            ]
-        )
+        from llama_index.core.llms import ChatMessage, MessageRole
+        messages = [
+            ChatMessage(role=MessageRole.SYSTEM, content=system_prompt),
+            ChatMessage(role=MessageRole.USER, content=query_text)
+        ]
+        logger.info(f"📝 系统提示词: {system_prompt[:100]}...")
+        logger.info(f"📝 用户提示词: {query_text}")
+        logger.info(f"🔧 LLM方法调用: Settings.llm.chat")
         
-        raw_content = response.message.content
+        # 使用同步chat方法，因为parse_query函数虽然是异步的，但可以调用同步方法
+        response = Settings.llm.chat(messages=messages)
+        
+        # 解析ChatResponse对象
+        raw_content = response.message.content if hasattr(response, 'message') and hasattr(response.message, 'content') else ''
         logger.info(f"🧠 [LLM Raw Output]: {raw_content}")
         
         # 提取 JSON 结果
@@ -463,26 +486,81 @@ async def parse_user_query(user_text: str, auth: AuthContext = None) -> Tuple[st
     """
     logger.info(f"📥 接收查询请求: {user_text}")
     
-    # 1. 识别意图
-    intent = await intent_recognizer.recognize_intent(user_text)
-    logger.info(f"🎯 识别意图: {intent}")
-    
-    # 2. 提取关键词
-    keywords = extract_keywords(user_text)
-    logger.info(f"🔑 提取关键词: {keywords}")
-    
-    # 3. 解析查询
-    search_term, filters = await parse_query(
-        query_text=user_text,
-        intent=intent,
-        schema_context=SCHEMA_CONTEXT_CACHE
-    )
-    
-    # 4. 空搜索词兜底
-    if not search_term or not search_term.strip():
+    try:
+        # 1. 调用增强型意图识别与实体抽取
+        intent_result = await intent_recognizer.recognize_intent_and_filters(user_text)
+        
+        # 2. 提取结果
+        query_intent = intent_result.get("query_intent", "general_query")
+        milvus_filters = intent_result.get("milvus_filters", {})
+        requested_fields = intent_result.get("requested_fields", [])
+        
+        # 3. 构建Milvus查询表达式
+        milvus_expr = intent_recognizer.build_milvus_expr(milvus_filters)
+        logger.info(f"🔍 构建Milvus查询表达式: {milvus_expr}")
+        
+        # 4. 提取关键词
+        keywords = extract_keywords(user_text)
+        logger.info(f"🔑 提取关键词: {keywords}")
+        
+        # 5. 转换为现有系统兼容的格式
+        # 直接使用新意图命名体系
+        compatible_intent = query_intent
+        
+        # 6. 构建过滤条件字典，兼容现有系统
+        filters = {}
+        
+        # 添加source_table过滤
+        source_table = milvus_filters.get("source_table")
+        if source_table:
+            filters["source_table"] = source_table
+        
+        # 处理其他过滤条件
+        for field, value in milvus_filters.items():
+            if field in ["source_table", "target_cell_types", "risk_query"]:
+                continue
+            
+            if isinstance(value, dict) and "op" in value:
+                # 数值范围查询，暂时只支持精确匹配
+                # 在query_service中会处理范围查询
+                continue
+            elif value is not None:
+                # 仅添加非空值
+                filters[field] = value
+        
+        # 7. 空搜索词兜底
         search_term = keywords or user_text
-        logger.info(f"🔧 空搜索词兜底: {search_term}")
-    
-    logger.info(f"✅ 查询解析完成: 搜索词='{search_term}', 过滤条件={filters}, 意图={intent}")
-    
-    return search_term, filters, intent
+        
+        logger.info(f"✅ 查询解析完成: 搜索词='{search_term}', 过滤条件={filters}, 意图={compatible_intent}")
+        logger.info(f"🎯 原始意图: {query_intent}, 兼容意图: {compatible_intent}")
+        
+        return search_term, filters, compatible_intent
+        
+    except Exception as e:
+        logger.error(f"❌ 查询解析异常: {e}")
+        # 降级到原有逻辑
+        logger.info("🔄 降级到原有意图识别逻辑")
+        
+        # 1. 识别意图
+        intent = await intent_recognizer.recognize_intent(user_text)
+        logger.info(f"🎯 识别意图: {intent}")
+        
+        # 2. 提取关键词
+        keywords = extract_keywords(user_text)
+        logger.info(f"🔑 提取关键词: {keywords}")
+        
+        # 3. 解析查询
+        search_term, filters = await parse_query(
+            query_text=user_text,
+            intent=intent,
+            schema_context=SCHEMA_CONTEXT_CACHE
+        )
+        
+        # 4. 空搜索词兜底
+        if not search_term or not search_term.strip():
+            search_term = keywords or user_text
+            logger.info(f"🔧 空搜索词兜底: {search_term}")
+        
+        logger.info(f"✅ 查询解析完成(降级): 搜索词='{search_term}', 过滤条件={filters}, 意图={intent}")
+        
+        return search_term, filters, intent
