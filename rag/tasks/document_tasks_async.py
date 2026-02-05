@@ -31,7 +31,7 @@ def clean_and_convert_value(value, target_type=str):
         target_type: 目标类型 (str, int, float, bool)
         
     Returns:
-        转换后的值，无法转换则返回None
+        转换后的值，无法转换则返回原始值的字符串表示
     """
     # 处理None值
     if value is None:
@@ -99,10 +99,16 @@ def clean_and_convert_value(value, target_type=str):
                 return value != 0
             return bool(value)
         else:  # 默认为字符串类型
+            # 对于字符串类型，直接返回原始值的字符串表示，保留所有格式
+            if isinstance(value, str):
+                return value
             return str(value)
     except (ValueError, TypeError):
-        logger.warning(f"⚠️ 无法转换值 {original_value} 到类型 {target_type}")
-        return None
+        logger.warning(f"⚠️ 无法转换值 {original_value} 到类型 {target_type}，将返回原始值的字符串表示")
+        # 异常情况下返回原始值的字符串表示，而不是None
+        if isinstance(original_value, str):
+            return original_value
+        return str(original_value)
 
 
 def parse_annotation_results(annotation_text: str) -> Tuple[List[str], Dict[str, float]]:
@@ -161,11 +167,11 @@ EXPERIMENT_RAW_TO_STANDARDIZED_MAPPING = {
                             "col_yang_ben_xin_xi_2"],
     
     # 实验指标
-        "arrival_temp_celsius": ["到样温度（℃）", "到样温度\n(℃)", "arrival_temp_celsius", "col_arrival_temp_celsius", "到样温度", "col_到样温度"],
-        "total_cells_10k": ["细胞总量(万)", "细胞总量\n(万)", "total_cells_10k", "col_total_cells_10k", "细胞总量", "col_细胞总量", "col_xbzl_w", 
-                            "col_shi_yan_zhi_biao", "col_yang_ben_xin_xi_3"],
+        "arrival_temp_celsius": ["到样温度（℃）", "到样温度\n(℃)", "arrival_temp_celsius", "col_arrival_temp_celsius", "到样温度", "col_到样温度", "sampling_temperature", "col_sampling_temperature"],
+    "total_cells_10k": ["细胞总量(万)", "细胞总量\n(万)", "total_cells_10k", "col_total_cells_10k", "细胞总量", "col_细胞总量", "col_xbzl_w", 
+                            "col_shi_yan_zhi_biao", "col_yang_ben_xin_xi_3", "cell_count", "col_cell_count"],
     "clumping_rate_percent": ["结团率(%)", "clumping_rate_percent", "col_clumping_rate_percent", "结团率", "col_结团率", "col_jie_tuan_lv",
-                              "col_shi_yan_zhi_biao_1"],
+                              "col_shi_yan_zhi_biao_1", "clustering_rate", "col_clustering_rate"],
     "cell_viability_percent": ["细胞活率(%)", "cell_viability_percent", "col_cell_viability_percent", "细胞活率", "col_细胞活率", "col_xi_bao_huo_lv",
                                "col_shi_yan_zhi_biao_2"],
     "nucleated_rate_percent": ["有核率(%)", "nucleated_rate_percent", "col_nucleated_rate_percent", "有核率", "col_有核率", "col_you_he_lv",
@@ -178,17 +184,27 @@ EXPERIMENT_RAW_TO_STANDARDIZED_MAPPING = {
                        "col_shu_ju_zhi_biao_1"],
     "median_genes": ["基因中位数", "median_genes", "col_median_genes", "col_基因中位数", "col_ji_yin_zhong_wei_shu",
                      "col_shu_ju_zhi_biao_2"],
+    "tissue_weight": ["组织重量", "tissue_weight", "col_组织重量", "col_tissue_weight", "organ_weight", "col_organ_weight"],
+    "tissue_weight_unit": ["组织重量单位", "tissue_weight_unit", "col_组织重量单位", "col_tissue_weight_unit", "organ_weight_unit", "col_organ_weight_unit"],
+    "qualitative_description": ["定性描述", "qualitative_description", "col_定性描述"],
+    "rin_score": ["核酸质量RIN值", "rin_score", "col_rin_score", "RIN值", "col_RIN值"],
+    "is_streaming": ["是否流式", "is_streaming", "col_是否流式"],
+    "antibody_info": ["抗体信息", "antibody_info", "col_抗体信息"],
+    "streaming_protocol": ["流式方案", "streaming_protocol", "col_流式方案"],
+    "is_lysis": ["是否裂红", "is_lysis", "col_是否裂红"],
+    "is_dead_removal": ["是否去死", "is_dead_removal", "col_是否去死"],
+    "captured_cells": ["捕获细胞数", "captured_cells", "col_captured_cells", "col_捕获细胞数", "col_bu_huo_xi_bao_shu",
+                      "col_shu_ju_zhi_biao", "captured_cell_count", "col_captured_cell_count"],
+    "median_genes": ["基因中位数", "median_genes", "col_median_genes", "col_基因中位数", "col_ji_yin_zhong_wei_shu",
+                     "col_shu_ju_zhi_biao_2", "median_genes_per_cell", "col_median_genes_per_cell"],
+    "digestion_protocol": ["组织消化方案", "tissue_digestion_protocol", "col_tissue_digestion_protocol", "col_组织消化方案", "digestion_protocol", "col_digestion_protocol"],
+    "related_articles": ["相关组织用户文章链接", "related_article_link", "col_related_article_link", "col_相关组织用户文章链接", "related_articles", "col_related_articles"],
+    "video_live_link": ["视频直播链接", "video_link", "col_video_link", "col_视频直播链接", "video_live_link", "col_video_live_link"],
     
     # 参考资料
-    "annotation_results": ["人工注释结果", "annotation_results_full", "col_annotation_results_full", "col_人工注释结果", "col_zsjg_zztyxzs",
+    "annotation_results": ["人工注释结果", "人工细胞注释", "annotation_results_full", "col_annotation_results_full", "col_人工注释结果", "col_人工细胞注释", "col_zsjg_zztyxzs",
                            "col_shu_ju_zhi_biao_3"],
-    "annotation_results_full": ["人工注释结果", "annotation_results_full", "col_annotation_results_full", "col_人工注释结果", "col_zsjg_zztyxzs",
-                           "col_shu_ju_zhi_biao_3"],
-    "tissue_digestion_protocol_name": ["组织消化方案", "tissue_digestion_protocol", "col_tissue_digestion_protocol", "col_组织消化方案"],
-    "tissue_digestion_protocol_summary": ["组织消化方案概述", "tissue_digestion_summary", "col_tissue_digestion_summary", "col_组织消化方案概述"],
-    "related_article_link": ["相关组织用户文章链接", "related_article_link", "col_related_article_link", "col_相关组织用户文章链接"],
     "feishu_doc_link": ["飞书文档链接", "feishu_doc_link", "col_feishu_doc_link", "col_飞书文档链接"],
-    "video_stream_link": ["视频直播链接", "video_link", "col_video_link", "col_视频直播链接"],
     
     # 通用字段
     "project_id": ["project_id", "col_project_id", "项目编号", "col_项目编号"],
@@ -220,24 +236,32 @@ EXPERIMENT_STANDARDIZED_FIELD_TYPES = {
     "experiment_protocol": str,
     
     # 实验指标
-    "arrival_temp_celsius": float,
-    "total_cells_10k": float,
-    "clumping_rate_percent": float,
-    "cell_viability_percent": float,
-    "nucleated_rate_percent": float,
+    "arrival_temp_celsius": str,
+    "total_cells_10k": str,
+    "clumping_rate_percent": str,
+    "cell_viability_percent": str,
+    "nucleated_rate_percent": str,
     
     # 数据指标
-    "captured_cells": int,
-    "reads_per_cell": int,
-    "median_genes": int,
+    "captured_cells": str,
+    "reads_per_cell": str,
+    "median_genes": str,
+    "tissue_weight": str,
+    "tissue_weight_unit": str,
+    "qualitative_description": str,
+    "rin_score": str,
+    "is_streaming": str,
+    "antibody_info": str,
+    "streaming_protocol": str,
+    "is_lysis": str,
+    "is_dead_removal": str,
     
     # 参考资料
     "annotation_results": str,
-    "tissue_digestion_protocol_name": str,
-    "tissue_digestion_protocol_summary": str,
-    "related_article_link": str,
+    "digestion_protocol": str,
+    "related_articles": str,
     "feishu_doc_link": str,
-    "video_stream_link": str,
+    "video_live_link": str,
 }
 
 # ==========================================
@@ -650,17 +674,14 @@ def process_document_task_async(  # 👈 修改函数名
                 elif "人工细胞注释" in current_raw_data and current_raw_data["人工细胞注释"]:
                     standardized_metadata["annotation_results"] = current_raw_data["人工细胞注释"]
                 
-                # 处理遗留字段 - 删除
-                for legacy_field in ["is_lysis", "is_dead_removal"]:
-                    if legacy_field in current_raw_data:
-                        del current_raw_data[legacy_field]
+                # 保留所有字段，不再删除任何字段
                 
                 # 从full_row_json中提取字段
                 if "full_row_json" in current_raw_data:
                     try:
                         full_row = json.loads(current_raw_data["full_row_json"])
                         
-                        # 根据表格类型提取相应的字段
+                        # 首先执行原始的硬编码字段提取，确保关键字段被正确映射
                         if table_type == "experiment_data":
                             # 实验数据表格字段提取
                             if "人工细胞注释" in full_row:
@@ -673,16 +694,30 @@ def process_document_task_async(  # 👈 修改函数名
                             # 实验指标字段
                             if "到样温度\n(℃)" in full_row:
                                 standardized_metadata["arrival_temp_celsius"] = full_row["到样温度\n(℃)"]
+                            if "到样温度" in full_row:
+                                standardized_metadata["arrival_temp_celsius"] = full_row["到样温度"]
                             if "细胞总量\n(万)" in full_row:
                                 standardized_metadata["total_cells_10k"] = full_row["细胞总量\n(万)"]
                             elif "细胞总量(万)" in full_row:
                                 standardized_metadata["total_cells_10k"] = full_row["细胞总量(万)"]
+                            elif "细胞总量" in full_row:
+                                standardized_metadata["total_cells_10k"] = full_row["细胞总量"]
                             if "结团率(%)" in full_row:
                                 standardized_metadata["clumping_rate_percent"] = full_row["结团率(%)"]
+                            elif "结团率" in full_row:
+                                standardized_metadata["clumping_rate_percent"] = full_row["结团率"]
                             if "细胞活率(%)" in full_row:
                                 standardized_metadata["cell_viability_percent"] = full_row["细胞活率(%)"]
+                            elif "细胞活率" in full_row:
+                                standardized_metadata["cell_viability_percent"] = full_row["细胞活率"]
                             if "有核率(%)" in full_row:
                                 standardized_metadata["nucleated_rate_percent"] = full_row["有核率(%)"]
+                            elif "有核率" in full_row:
+                                standardized_metadata["nucleated_rate_percent"] = full_row["有核率"]
+                            if "是否裂红" in full_row:
+                                standardized_metadata["is_lysis"] = full_row["是否裂红"]
+                            if "是否去死" in full_row:
+                                standardized_metadata["is_dead_removal"] = full_row["是否去死"]
                             if "捕获细胞数" in full_row:
                                 standardized_metadata["captured_cells"] = full_row["捕获细胞数"]
                             if "reads/cell" in full_row:
@@ -734,6 +769,45 @@ def process_document_task_async(  # 👈 修改函数名
                         # 提取其他通用字段
                         if "组织重量\n（数值）" in full_row and full_row["组织重量\n（数值）"] and full_row["组织重量\n（数值）"] != "/":
                             standardized_metadata["tissue_weight"] = full_row["组织重量\n（数值）"]
+                        
+                        # === 新增：提取full_row中的所有字段 ===
+                        # 遍历full_row中的所有键值对，添加到standardized_metadata
+                        for key, value in full_row.items():
+                            # 跳过空值和"/"值
+                            if value is None or value == "" or value == "/":
+                                continue
+                            
+                            # 转换值为字符串
+                            str_value = str(value).strip()
+                            if not str_value:
+                                continue
+                            
+                            # 检查是否已经有标准化的字段名
+                            # 1. 首先检查是否在EXPERIMENT_RAW_TO_STANDARDIZED_MAPPING中
+                            mapped_field = None
+                            for std_field, raw_fields in EXPERIMENT_RAW_TO_STANDARDIZED_MAPPING.items():
+                                if key in raw_fields:
+                                    mapped_field = std_field
+                                    break
+                            
+                            # 2. 如果没有映射，检查是否在PREPARATION_RAW_TO_STANDARDIZED_MAPPING中
+                            if not mapped_field:
+                                for std_field, raw_fields in PREPARATION_RAW_TO_STANDARDIZED_MAPPING.items():
+                                    if key in raw_fields:
+                                        mapped_field = std_field
+                                        break
+                            
+                            # 3. 如果找到了映射字段名，使用映射后的字段名
+                            if mapped_field:
+                                # 只有当字段值为空时才覆盖，保留之前提取的值
+                                if standardized_metadata.get(mapped_field) is None:
+                                    standardized_metadata[mapped_field] = str_value
+                            else:
+                                # 4. 如果没有映射，使用原始键名（清理后）作为字段名
+                                # 清理键名，使其符合Milvus要求
+                                clean_key = re.sub(r'[^a-zA-Z0-9_]', '_', key).strip('_').lower()
+                                if clean_key:
+                                    standardized_metadata[clean_key] = str_value
                     except json.JSONDecodeError:
                         pass
                 
@@ -881,6 +955,19 @@ def process_document_task_async(  # 👈 修改函数名
                                 safe_template = safe_template.replace(f"{{{field}}}", "未知")
                         text_parts.append(safe_template.format_map(sample_info_fields))
                     
+                    # 添加裂红和去死处理信息
+                    sample_extra_parts = []
+                    if "is_lysis" in standardized_metadata:
+                        value = standardized_metadata["is_lysis"]
+                        if value is not None and value.strip():
+                            sample_extra_parts.append(f"裂红处理为{value}")
+                    if "is_dead_removal" in standardized_metadata:
+                        value = standardized_metadata["is_dead_removal"]
+                        if value is not None and value.strip():
+                            sample_extra_parts.append(f"去死处理为{value}")
+                    if sample_extra_parts:
+                        text_parts.append(f"样本处理：{', '.join(sample_extra_parts)}。")
+                    
                     # 实验指标
                     exp_metrics_fields = {}
                     for field in ["arrival_temp_celsius", "total_cells_10k", "clumping_rate_percent", "cell_viability_percent", "nucleated_rate_percent"]:
@@ -964,6 +1051,45 @@ def process_document_task_async(  # 👈 修改函数名
                     else:
                         # 使用原始文本作为最后兜底
                         text_parts.append(raw_text or "无内容")
+                
+                # === 新增：添加所有未在结构化文本中包含的字段 ===
+                # 定义已在结构化文本中包含的字段
+                included_fields = set([
+                    "platform_type", "species", "sample_type_exp", "sample_detailed_type", "experiment_protocol",
+                    "arrival_temp_celsius", "total_cells_10k", "clumping_rate_percent", "cell_viability_percent", "nucleated_rate_percent",
+                    "captured_cells", "reads_per_cell", "median_genes", "annotation_results",
+                    "product_level1", "product_level3", "sample_category_prep", "sample_type_prep", "tissue_type_prep", "sample_prep_method",
+                    "recommended_amount_1", "recommended_amount_2", "recommended_amount_3",
+                    "qualitative_description_1", "qualitative_description_2", "qualitative_description_3",
+                    "sample_preparation_method_doc", "sampling_notes", "notes_full_text"
+                ])
+                
+                # 添加系统字段到排除列表
+                system_fields = set([
+                    "id", "doc_id", "text", "embedding", "source_table", "chunk_id", "filename",
+                    "department", "doc_type", "owner", "uploader", "sheet_name", "row_index",
+                    "raw_text", "full_row_json"
+                ])
+                
+                # 收集未包含的字段
+                additional_fields = []
+                for field_name, field_value in standardized_metadata.items():
+                    # 跳过已包含的字段、系统字段和空值
+                    if (
+                        field_name in included_fields or 
+                        field_name in system_fields or 
+                        field_value is None or 
+                        field_value == "" or
+                        field_value == "未知"
+                    ):
+                        continue
+                    
+                    # 添加字段到额外字段列表
+                    additional_fields.append(f"{field_name}: {field_value}")
+                
+                # 如果有未包含的字段，添加到文本中
+                if additional_fields:
+                    text_parts.append("\n其他信息：" + "， ".join(additional_fields) + "。")
                 
                 # 最终文本生成
                 node_text = "\n".join(text_parts)

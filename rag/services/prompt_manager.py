@@ -4,8 +4,11 @@
 提示词管理器
 负责管理不同意图的提示词模板
 """
+
 from typing import Dict, List, Optional
-from utils.logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PromptManager:
     """
@@ -13,195 +16,111 @@ class PromptManager:
     管理不同意图的提示词模板
     """
     def __init__(self):
-        # 初始化提示词模板字典
-        self.prompts: Dict[str, Dict] = {
-            # 新意图命名体系
+        """
+        初始化提示词管理器
+        """
+        self.prompts = {}
+        self._load_prompts()
+    
+    def _load_prompts(self):
+        """
+        从Python配置文件加载提示词
+        """
+        try:
+            # 从Python配置文件导入提示词
+            import sys
+            import os
+            # 添加config目录到Python路径
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_dir = os.path.join(current_dir, "..", "config")
+            config_dir = os.path.normpath(config_dir)
+            sys.path.insert(0, config_dir)
+            from prompts_config import PROMPTS_CONFIG
+            
+            logger.info("✅ 成功加载提示词配置文件: prompts_config.py")
+            logger.info(f"✅ 加载的提示词类别: {list(PROMPTS_CONFIG.keys())}")
+            
+            # 加载响应生成提示词
+            if 'response_generation' in PROMPTS_CONFIG:
+                self.prompts = PROMPTS_CONFIG['response_generation']
+                response_templates = list(self.prompts.keys())
+                logger.info(f"✅ 加载了 {len(response_templates)} 个响应生成提示词模板: {response_templates}")
+            else:
+                # 使用默认提示词
+                self._use_default_prompts()
+            
+        except Exception as e:
+            logger.error(f"❌ 加载提示词配置文件失败: {e}")
+            # 使用默认提示词
+            self._use_default_prompts()
+    
+    def _use_default_prompts(self):
+        """
+        使用默认提示词
+        """
+        logger.warning("⚠️ 使用默认提示词模板")
+        self.prompts = {
             "query_experiment_data": {
-                "name": "实验数据查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于实验样本的问题。\n" 
-                    "\n" 
-                    "请严格按照以下结构和要求回答：\n" 
-                    "\n" 
-                    "### 📊 实验指标汇总分析\n" 
-                    "**表格形式**：\n" 
-                    "| 指标名称 | 数据范围 | 平均值 | 最小值 | 最大值 | 中位数 | 评价分析 |\n" 
-                    "|----------|----------|--------|--------|--------|--------|----------|\n" 
-                    "| 指标1    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "| 指标2    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "...\n" 
-                    "\n" 
-                    "**总体指标评估总结**：\n" 
-                    "对所有指标的总体评估和总结，基于所有检索到的数据。\n" 
-                    "\n" 
-                    "### 💡 实验方案建议\n" 
-                    "给出具体、可操作的实验方案建议。\n" 
-                    "\n" 
-                    "注意：\n" 
-                    "- 严格基于提供的数据回答，不要编造信息\n" 
-                    "- 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "- 使用清晰简洁的语言\n" 
-                    "- 回答要具体、可操作\n" 
-                    "- 必须包含表格形式的指标汇总分析，表格中必须包含统计分析的所有指标\n" 
-                    "- 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "- 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "- LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n"
-                )
+                "name": "实验记录查询",
+                "system_prompt": "你是一位资深的生物数据分析专家。你的任务是根据检索到的数据库记录，回答用户关于生物实验数据的问题。"
             },
             "query_preparation_guidelines": {
                 "name": "样本制备指南查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于实验项目的问题。\n" 
-                    "\n" 
-                    "请严格按照以下结构和要求回答：\n" 
-                    "\n" 
-                    "### 📊 实验指标汇总分析\n" 
-                    "**表格形式**：\n" 
-                    "| 指标名称 | 数据范围 | 平均值 | 最小值 | 最大值 | 中位数 | 评价分析 |\n" 
-                    "|----------|----------|--------|--------|--------|--------|----------|\n" 
-                    "| 指标1    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "| 指标2    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "...\n" 
-                    "\n" 
-                    "**总体指标评估总结**：\n" 
-                    "对所有指标的总体评估和总结，基于所有检索到的数据。\n" 
-                    "\n" 
-                    "### 💡 实验方案建议\n" 
-                    "给出具体、可操作的实验方案建议。\n" 
-                    "\n" 
-                    "注意：\n" 
-                    "- 严格基于提供的数据回答，不要编造信息\n" 
-                    "- 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "- 使用清晰简洁的语言\n" 
-                    "- 回答要具体、可操作\n" 
-                    "- 必须包含表格形式的指标汇总分析，表格中必须包含统计分析的所有指标\n" 
-                    "- 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "- 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "- LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n"
-                )
-            },
-            # 旧意图命名体系（保持兼容）
-            "sample_query": {
-                "name": "样本查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于实验样本的问题。\n" 
-                    "\n" 
-                    "请严格按照以下结构和要求回答：\n" 
-                    "\n" 
-                    "### 📊 实验指标汇总分析\n" 
-                    "**表格形式**：\n" 
-                    "| 指标名称 | 数据范围 | 平均值 | 最小值 | 最大值 | 中位数 | 评价分析 |\n" 
-                    "|----------|----------|--------|--------|--------|--------|----------|\n" 
-                    "| 指标1    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "| 指标2    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "...\n" 
-                    "\n" 
-                    "**总体指标评估总结**：\n" 
-                    "对所有指标的总体评估和总结，基于所有检索到的数据。\n" 
-                    "\n" 
-                    "### 💡 实验方案建议\n" 
-                    "给出具体、可操作的实验方案建议。\n" 
-                    "\n" 
-                    "注意：\n" 
-                    "- 严格基于提供的数据回答，不要编造信息\n" 
-                    "- 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "- 使用清晰简洁的语言\n" 
-                    "- 回答要具体、可操作\n" 
-                    "- 必须包含表格形式的指标汇总分析，表格中必须包含统计分析的所有指标\n" 
-                    "- 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "- 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "- LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n"
-                )
-            },
-            "project_query": {
-                "name": "项目经验查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于实验项目的问题。\n" 
-                    "\n" 
-                    "请严格按照以下结构和要求回答：\n" 
-                    "\n" 
-                    "### 📊 实验指标汇总分析\n" 
-                    "**表格形式**：\n" 
-                    "| 指标名称 | 数据范围 | 平均值 | 最小值 | 最大值 | 中位数 | 评价分析 |\n" 
-                    "|----------|----------|--------|--------|--------|--------|----------|\n" 
-                    "| 指标1    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "| 指标2    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "...\n" 
-                    "\n" 
-                    "**总体指标评估总结**：\n" 
-                    "对所有指标的总体评估和总结，基于所有检索到的数据。\n" 
-                    "\n" 
-                    "### 💡 实验方案建议\n" 
-                    "给出具体、可操作的实验方案建议。\n" 
-                    "\n" 
-                    "注意：\n" 
-                    "- 严格基于提供的数据回答，不要编造信息\n" 
-                    "- 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "- 使用清晰简洁的语言\n" 
-                    "- 回答要具体、可操作\n" 
-                    "- 必须包含表格形式的指标汇总分析，表格中必须包含统计分析的所有指标\n" 
-                    "- 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "- 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "- LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n"
-                )
-            },
-            "general_query": {
-                "name": "通用查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于生物实验数据的问题。\n" 
-                    "\n" 
-                    "请严格按照以下结构和要求回答：\n" 
-                    "\n" 
-                    "### 📊 实验指标汇总分析\n" 
-                    "**表格形式**：\n" 
-                    "| 指标名称 | 数据范围 | 平均值 | 最小值 | 最大值 | 中位数 | 评价分析 |\n" 
-                    "|----------|----------|--------|--------|--------|--------|----------|\n" 
-                    "| 指标1    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "| 指标2    | 最小值-最大值 | 平均值 | 最小值 | 最大值 | 中位数 | 对该指标的评价分析，基于前面的统计数据 |\n" 
-                    "...\n" 
-                    "\n" 
-                    "**总体指标评估总结**：\n" 
-                    "对所有指标的总体评估和总结，基于所有检索到的数据。\n" 
-                    "\n" 
-                    "### 💡 实验方案建议\n" 
-                    "给出具体、可操作的实验方案建议。\n" 
-                    "\n" 
-                    "注意：\n" 
-                    "- 严格基于提供的数据回答，不要编造信息\n" 
-                    "- 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "- 使用清晰简洁的语言\n" 
-                    "- 回答要具体、可操作\n" 
-                    "- 必须包含表格形式的指标汇总分析，表格中必须包含统计分析的所有指标\n" 
-                    "- 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "- 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "- LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n"
-                )
-            },
-            "annotation_query": {
-                "name": "注释结果查询",
-                "system_prompt": (
-                    "你是一位资深的生物数据分析专家。\n" 
-                    "你的任务是根据检索到的数据库记录，回答用户关于细胞注释、细胞鉴定结果的问题。\n" 
-                    "\n" 
-                    "请按照以下要求回答：\n" 
-                    "\n" 
-                    "1. 直接回答用户问题，语言简洁明了\n" 
-                    "2. 严格基于提供的数据回答，不要编造信息\n" 
-                    "3. 忽略缺失值（如 '/' 或 'None'）\n" 
-                    "4. 使用清晰简洁的语言，避免复杂的技术术语\n" 
-                    "5. 所有分析必须基于所有检索到的数据，不能仅基于筛选出来的几条信息\n" 
-                    "6. 数据来源标注：在相关内容后用括号标注数据来源，如[来自test.xlsx - Sheet1]\n" 
-                    "7. LLM基础能力标注：来自LLM基础通用能力的内容用括号标注，如[来自LLM基础通用能力，仅供参考]\n" 
-                    "8. 如果查询是关于特定细胞类型的存在性（如'有没有T细胞'），请明确回答'有'或'没有'，并提供相关数据支持\n" 
-                    "9. 如果查询是关于细胞类型的具体信息，请提供详细的细胞类型分布、比例等信息\n"
-                )
+                "system_prompt": "你是一位资深的生物实验技术专家。你的任务是根据用户的查询，提供详细的实验准备指南。"
             }
         }
+    
+    def get_intent_detection_prompt(self) -> Optional[str]:
+        """
+        获取意图识别提示词
+        
+        Returns:
+            Optional[str]: 意图识别提示词，如果不存在则返回None
+        """
+        try:
+            # 从Python配置文件导入提示词
+            import sys
+            import os
+            # 添加config目录到Python路径
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_dir = os.path.join(current_dir, "..", "config")
+            config_dir = os.path.normpath(config_dir)
+            sys.path.insert(0, config_dir)
+            from prompts_config import PROMPTS_CONFIG
+            
+            return PROMPTS_CONFIG.get('intent_detection', {}).get('system_prompt')
+        except Exception as e:
+            logger.error(f"❌ 获取意图识别提示词失败: {e}")
+            return None
+    
+    def get_response_prompt(self, intent: str) -> Optional[Dict]:
+        """
+        获取指定意图的响应提示词
+        
+        Args:
+            intent: 意图名称
+        
+        Returns:
+            Optional[Dict]: 包含name和system_prompt的字典，如果不存在则返回None
+        """
+        try:
+            return self.prompts.get(intent)
+        except Exception as e:
+            logger.error(f"❌ 获取响应提示词失败: {e}")
+            return None
+    
+    def list_response_intents(self) -> List[str]:
+        """
+        获取所有支持的响应意图列表
+        
+        Returns:
+            List[str]: 支持的响应意图名称列表
+        """
+        try:
+            return list(self.prompts.keys())
+        except Exception as e:
+            logger.error(f"❌ 获取响应意图列表失败: {e}")
+            return []
     
     def list_intents(self) -> List[str]:
         """
@@ -225,7 +144,7 @@ class PromptManager:
         # 如果意图不存在，返回默认提示词
         if intent not in self.prompts:
             logger.warning(f"意图 '{intent}' 不存在，使用默认提示词")
-            return self.prompts.get("general_query", {})
+            return self.prompts.get("query_experiment_data", {})
         
         return self.prompts[intent]
     
@@ -243,6 +162,27 @@ class PromptManager:
             "system_prompt": system_prompt
         }
         logger.info(f"添加新提示词模板: {intent} - {name}")
+    
+    def reload_prompts(self):
+        """
+        重新加载提示词配置文件
+        """
+        logger.info("🔄 重新加载提示词配置文件")
+        # 清除模块缓存，确保重新导入最新的配置
+        import importlib
+        try:
+            import sys
+            import os
+            # 添加config目录到Python路径
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_dir = os.path.join(current_dir, "..", "config")
+            config_dir = os.path.normpath(config_dir)
+            sys.path.insert(0, config_dir)
+            import prompts_config
+            importlib.reload(prompts_config)
+        except Exception as e:
+            logger.warning(f"⚠️ 清除模块缓存失败: {e}")
+        self._load_prompts()
 
 
 # 创建全局实例

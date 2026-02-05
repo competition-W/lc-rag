@@ -102,7 +102,7 @@ services:
     depends_on:
       - "redis"
       - "lc_knowledge"
-    command: ["uv", "run", "tasks/celery_app.py", "worker", "--loglevel=info"]
+    command: ["python", "-m", "uv", "run", "tasks/celery_app.py", "worker", "--loglevel=info"]
 
   celery_beat:
     build:
@@ -116,7 +116,7 @@ services:
     depends_on:
       - "redis"
       - "celery_worker"
-    command: ["uv", "run", "tasks/celery_app.py", "beat", "--loglevel=info"]
+    command: ["python", "-m", "uv", "run", "tasks/celery_app.py", "beat", "--loglevel=info"]
 
 networks:
   default:

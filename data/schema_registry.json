@@ -1,65 +1,4 @@
 {
-  "biology": [
-    {
-      "key": "col_chan_pin",
-      "name": "col_chan_pin",
-      "desc": "来自表格列 'col_chan_pin'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "单细胞转录组"
-      ]
-    },
-    {
-      "key": "category",
-      "name": "category",
-      "desc": "来自表格列 'category'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "动物组织",
-        "血液样本"
-      ]
-    },
-    {
-      "key": "tissue",
-      "name": "tissue",
-      "desc": "来自表格列 'tissue'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "心脏",
-        "PBMC"
-      ]
-    },
-    {
-      "key": "col_yang_ben_chu_li_fang_shi",
-      "name": "col_yang_ben_chu_li_fang_shi",
-      "desc": "来自表格列 'col_yang_ben_chu_li_fang_shi'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "新鲜冷冻",
-        "抗凝处理"
-      ]
-    },
-    {
-      "key": "col_jian_yi_song_yang_liang",
-      "name": "col_jian_yi_song_yang_liang",
-      "desc": "来自表格列 'col_jian_yi_song_yang_liang'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "100mg",
-        "5ml"
-      ]
-    },
-    {
-      "key": "col_yang_ben_zhun_bei_fang_fa",
-      "name": "col_yang_ben_zhun_bei_fang_fa",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_fang_fa'",
-      "table_type": "sample_preparation",
-      "valid_values": [
-        "液氮速冻",
-        "EDTA抗凝"
-      ]
-    }
-  ],
   "market": [
     {
       "key": "product_level1",
@@ -106,16 +45,15 @@
       "name": "样本类型",
       "desc": "来自表格列 '样本类型'",
       "valid_values": [
+        "类器官类样本",
+        "液体类样本",
+        "冻存组织",
+        "新鲜实体组织",
         "石蜡包埋组织",
         "固定的细胞",
-        "类器官类样本",
-        "固定的细胞核",
-        "新鲜实体组织",
-        "植物类样本",
+        "固定的新鲜组织",
         "细胞类样本",
-        "冻存组织",
-        "液体类样本",
-        "固定的新鲜组织"
+        "固定的细胞核"
       ]
     },
     {
@@ -171,8 +109,8 @@
       "name": "样本处理方式",
       "desc": "来自表格列 '样本处理方式'",
       "valid_values": [
-        "抽核",
-        "解离"
+        "解离",
+        "抽核"
       ]
     },
     {
@@ -309,52 +247,129 @@
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun",
-      "name": "质检标准",
-      "desc": "来自表格列 '质检标准'",
+      "key": "rin_score",
+      "name": "质检标准_RIN",
+      "desc": "来自表格列 '质检标准_RIN'",
       "valid_values": [
-        "/",
+        "9.7",
+        "8.6",
+        "9.6",
+        "9.0",
+        "8.0",
         "RIN≥7",
-        "DV200：≥30%"
+        "7.3",
+        "9.8",
+        "8.9",
+        "6.7",
+        "7.5",
+        "10.0",
+        "/",
+        "7.2",
+        "7.8",
+        "7.7",
+        "6.5",
+        "6.1",
+        "8.2",
+        "9.4",
+        "7.1",
+        "9.9",
+        "6.0",
+        "7.9",
+        "8.8",
+        "8.4",
+        "8.5",
+        "8.3",
+        "8.1",
+        "5.6",
+        "9.3",
+        "9.2",
+        "9.1",
+        "8.7",
+        "DV200：≥30%",
+        "9.5"
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun_1",
-      "name": "质检标准.1",
-      "desc": "来自表格列 '质检标准.1'",
+      "key": "cell_viability_percent",
+      "name": "质检标准_细胞活率",
+      "desc": "来自表格列 '质检标准_细胞活率'",
       "valid_values": [
+        "0.77",
+        "0.88",
+        "0.78",
+        "0.94",
+        "0.82",
+        "0.75",
+        "0.58",
+        "0.01",
+        "0.74",
+        "0.0",
+        "0.93",
+        "0.33",
+        "0.02",
+        "0.91",
+        "0.79",
+        "0.62",
+        "0.95",
+        "0.65",
+        "0.9",
         "细胞活率：≥85%",
-        "细胞核活率：≤5%"
+        "0.8",
+        "0.76",
+        "0.71",
+        "0.64",
+        "0.98",
+        "0.83",
+        "0.89",
+        "0.56",
+        "0.03",
+        "0.5",
+        "0.97",
+        "1.0",
+        "0.72",
+        "0.67",
+        "0.92",
+        "0.81",
+        "0.87",
+        "0.84",
+        "0.85",
+        "0.99",
+        "0.96",
+        "细胞核活率：≤5%",
+        "0.43",
+        "0.7",
+        "0.73",
+        "0.86"
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun_2",
-      "name": "质检标准.2",
-      "desc": "来自表格列 '质检标准.2'",
+      "key": "cell_count",
+      "name": "质检标准_细胞总量",
+      "desc": "来自表格列 '质检标准_细胞总量'",
       "valid_values": [
         "细胞总量：≥5万"
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun_3",
-      "name": "质检标准.3",
-      "desc": "来自表格列 '质检标准.3'",
+      "key": "live_cell_concentration",
+      "name": "质检标准_活细胞浓度",
+      "desc": "来自表格列 '质检标准_活细胞浓度'",
       "valid_values": [
         "活细胞浓度：500~1500 cells /μL"
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun_4",
-      "name": "质检标准.4",
-      "desc": "来自表格列 '质检标准.4'",
+      "key": "clustering_rate",
+      "name": "质检标准_结团率",
+      "desc": "来自表格列 '质检标准_结团率'",
       "valid_values": [
         "结团率：≤25%"
       ]
     },
     {
-      "key": "col_zhi_jian_biao_zhun_5",
-      "name": "质检标准.5",
-      "desc": "来自表格列 '质检标准.5'",
+      "key": "nucleated_rate_percent",
+      "name": "质检标准_有核率",
+      "desc": "来自表格列 '质检标准_有核率'",
       "valid_values": [
         "有核率：≥70%"
       ]
@@ -407,26 +422,26 @@
       "desc": "来自表格列 '实验平台'",
       "valid_values": [
         "10X单细胞3‘转录本-抽核(V3试剂)",
-        "10X单细胞3'转录本-抽核(V3试剂)",
         "10X单细胞3'转录本-抽核(GEMX试剂)",
+        "10X单细胞3‘转录本(V3试剂)",
         "10X单细胞VDJ/(5'转录本CC试剂)",
         "10X单细胞3'转录本(V3试剂)",
         "华大单细胞3'转录本(解离)",
         "墨卓单细胞3‘转录本",
-        "10X单细胞3‘转录本(V3试剂)",
         "10X单细胞VDJ/(5‘转录本)",
         "10X单细胞VDJ/(5'转录本)",
         "10X单细胞TCR/(5'转录本)",
+        "10X单细胞3'转录本-抽核(V3试剂)",
         "10X单细胞BCR/(5'转录本)",
         "10X单细胞VDJ/(5'转录本)（GEMX试剂）",
         "10X单细胞TCR/(5‘转录本)",
         "10X单细胞VDJ(无需5'转录组)",
         "10X单细胞5‘转录本(无需VDJ)",
+        "华大单细胞3‘转录本(抽核)",
         "10X单细胞BCR/(5‘转录本)",
         "墨卓单细胞3'转录本（解离）",
         "华大单细胞3‘转录本(解离)",
         "华大单细胞3‘转录本",
-        "华大单细胞3‘转录本(抽核)",
         "墨卓单细胞3‘转录本（抽核）"
       ]
     },
@@ -436,16 +451,16 @@
       "desc": "来自表格列 '物种'",
       "valid_values": [
         "小鼠",
-        "人",
-        "猪",
         "大鼠",
-        "绵羊",
+        "猪",
+        "人",
         "牛",
+        "绵羊",
+        "大鼠+人",
         "蝙蝠",
         "山羊",
         "小鼠（裸鼠）",
         "羊",
-        "大鼠+人",
         "猕猴"
       ]
     },
@@ -456,60 +471,31 @@
       "valid_values": []
     },
     {
-      "key": "col_zu_zhi_zhong_liang_shu_zhi",
-      "name": "组织重量\n（数值）",
-      "desc": "来自表格列 '组织重量\n（数值）'",
-      "valid_values": []
-    },
-    {
-      "key": "col_zu_zhi_zhong_liang_dan_wei",
-      "name": "组织重量\n（单位）",
-      "desc": "来自表格列 '组织重量\n（单位）'",
-      "valid_values": []
-    },
-    {
-      "key": "col_he_suan_zhi_liang_rin_zhi",
-      "name": "核酸质量\n（RIN值）",
-      "desc": "来自表格列 '核酸质量\n（RIN值）'",
+      "key": "experiment_protocol",
+      "name": "实验方案",
+      "desc": "来自表格列 '实验方案'",
       "valid_values": [
-        "10",
-        "9",
-        "8.2",
-        "8.8",
-        "7.8",
-        "8.9",
-        "9.6",
-        "9.1",
-        "/",
-        "7.3",
-        "8.6",
-        "8.5",
-        "7.9",
-        "8.7",
-        "7.2",
-        "7.5",
-        "7.7",
-        "8.1",
-        "7.1",
-        "8.4",
-        "9.3",
-        "9.2",
-        "9.4",
-        "9.7",
-        "6.1",
-        "8.3",
-        "6.5",
-        "6",
-        "9.5",
-        "9.8",
-        "6.7",
-        "8",
-        "5.6",
-        "9.9"
+        "抽核",
+        "解离"
       ]
     },
     {
-      "key": "col_shi_fou_liu_shi",
+      "key": "tissue_weight",
+      "name": "组织重量",
+      "desc": "来自表格列 '组织重量'",
+      "valid_values": []
+    },
+    {
+      "key": "tissue_weight_unit",
+      "name": "组织重量单位",
+      "desc": "来自表格列 '组织重量单位'",
+      "valid_values": [
+        "mg",
+        "mL"
+      ]
+    },
+    {
+      "key": "is_streaming",
       "name": "是否流式",
       "desc": "来自表格列 '是否流式'",
       "valid_values": [
@@ -518,13 +504,13 @@
       ]
     },
     {
-      "key": "col_kang_ti_xin_xi",
+      "key": "antibody_info",
       "name": "抗体信息",
       "desc": "来自表格列 '抗体信息'",
       "valid_values": []
     },
     {
-      "key": "col_liu_shi_fang_an",
+      "key": "streaming_protocol",
       "name": "流式方案",
       "desc": "来自表格列 '流式方案'",
       "valid_values": []
@@ -548,79 +534,58 @@
       ]
     },
     {
-      "key": "col_qi_ta_he_shu_ju_zhi_biao_gua_gou_de_xin_xi",
-      "name": "其他和数据指标挂钩的信息",
-      "desc": "来自表格列 '其他和数据指标挂钩的信息'",
-      "valid_values": []
-    },
-    {
-      "key": "col_dao_yang_wen_du",
-      "name": "到样温度\n(℃)",
-      "desc": "来自表格列 '到样温度\n(℃)'",
+      "key": "arrival_temp_celsius",
+      "name": "到样温度",
+      "desc": "来自表格列 '到样温度'",
       "valid_values": [
-        "-80",
-        "4",
-        "11.7",
-        "2.9",
-        "2.3",
-        "2.7",
-        "/",
-        "8.4",
-        "1.9",
-        "9.7",
-        "4.8",
-        "11.8",
-        "干冰",
-        "17",
+        "-80℃",
+        "4℃",
+        "11.7℃",
+        "2.9℃",
+        "2.3℃",
+        "2.7℃",
+        "8.4℃",
+        "1.9℃",
+        "9.7℃",
+        "3.1℃",
+        "11.8℃",
+        "17℃",
         "常温",
-        "3.1",
-        "9",
-        "1",
-        "8.8",
-        "5.4",
-        "5.8",
-        "4.7",
-        "3.6"
+        "-4℃",
+        "干冰",
+        "9℃",
+        "8.8℃",
+        "5.4℃",
+        "5.8℃",
+        "3.6℃"
       ]
     },
     {
-      "key": "col_xi_bao_zong_liang_wan",
-      "name": "细胞总量\n(万)",
-      "desc": "来自表格列 '细胞总量\n(万)'",
+      "key": "total_cells_10k",
+      "name": "细胞总量",
+      "desc": "来自表格列 '细胞总量'",
       "valid_values": []
     },
     {
-      "key": "col_jie_tuan_lv",
-      "name": "结团率(%)",
-      "desc": "来自表格列 '结团率(%)'",
+      "key": "clumping_rate_percent",
+      "name": "结团率",
+      "desc": "来自表格列 '结团率'",
       "valid_values": []
     },
     {
-      "key": "col_xi_bao_huo_lv",
-      "name": "细胞活率(%)",
-      "desc": "来自表格列 '细胞活率(%)'",
-      "valid_values": []
-    },
-    {
-      "key": "col_you_he_lv",
-      "name": "有核率(%)",
-      "desc": "来自表格列 '有核率(%)'",
-      "valid_values": []
-    },
-    {
-      "key": "col_bu_huo_xi_bao_shu",
+      "key": "captured_cells",
       "name": "捕获细胞数",
       "desc": "来自表格列 '捕获细胞数'",
       "valid_values": []
     },
     {
-      "key": "col_reads_cell",
+      "key": "reads_per_cell",
       "name": "reads/cell",
       "desc": "来自表格列 'reads/cell'",
       "valid_values": []
     },
     {
-      "key": "col_ji_yin_zhong_wei_shu",
+      "key": "median_genes",
       "name": "基因中位数",
       "desc": "来自表格列 '基因中位数'",
       "valid_values": []
@@ -632,33 +597,113 @@
       "valid_values": []
     },
     {
-      "key": "col_zu_zhi_xiao_hua_fang_an",
+      "key": "digestion_protocol",
       "name": "组织消化方案",
       "desc": "来自表格列 '组织消化方案'",
       "valid_values": []
     },
     {
-      "key": "col_zu_zhi_xiao_hua_fang_an_gai_shu",
-      "name": "组织消化方案概述",
-      "desc": "来自表格列 '组织消化方案概述'",
-      "valid_values": []
-    },
-    {
-      "key": "col_xiang_guan_zu_zhi_yong_hu_wen_zhang_lian_jie",
+      "key": "related_articles",
       "name": "相关组织用户文章链接",
       "desc": "来自表格列 '相关组织用户文章链接'",
       "valid_values": []
     },
     {
-      "key": "col_fei_shu_wen_dang_lian_jie",
+      "key": "feishu_doc_link",
       "name": "飞书文档链接",
       "desc": "来自表格列 '飞书文档链接'",
       "valid_values": []
     },
     {
-      "key": "col_shi_pin_zhi_bo_lian_jie",
+      "key": "video_live_link",
       "name": "视频直播链接",
       "desc": "来自表格列 '视频直播链接'",
+      "valid_values": []
+    }
+  ],
+  "test": [
+    {
+      "key": "col_10x_dan_xi_bao_vdj_5_zhuan_lu_ben",
+      "name": "10X单细胞VDJ/(5'转录本)",
+      "desc": "来自表格列 '10X单细胞VDJ/(5'转录本)'",
+      "valid_values": []
+    },
+    {
+      "key": "ren",
+      "name": "人",
+      "desc": "来自表格列 '人'",
+      "valid_values": []
+    },
+    {
+      "key": "col_ye_ti_lei_yang_ben",
+      "name": "液体类样本",
+      "desc": "来自表格列 '液体类样本'",
+      "valid_values": []
+    },
+    {
+      "key": "col_quan_xue",
+      "name": "全血",
+      "desc": "来自表格列 '全血'",
+      "valid_values": []
+    },
+    {
+      "key": "col_jie_li",
+      "name": "解离",
+      "desc": "来自表格列 '解离'",
+      "valid_values": []
+    },
+    {
+      "key": "4",
+      "name": "4℃",
+      "desc": "来自表格列 '4℃'",
+      "valid_values": []
+    },
+    {
+      "key": "700",
+      "name": "700",
+      "desc": "来自表格列 '700'",
+      "valid_values": []
+    },
+    {
+      "key": "00108",
+      "name": "0.0108",
+      "desc": "来自表格列 '0.0108'",
+      "valid_values": []
+    },
+    {
+      "key": "098",
+      "name": "0.98",
+      "desc": "来自表格列 '0.98'",
+      "valid_values": []
+    },
+    {
+      "key": "096",
+      "name": "0.96",
+      "desc": "来自表格列 '0.96'",
+      "valid_values": []
+    },
+    {
+      "key": "10792",
+      "name": "10792",
+      "desc": "来自表格列 '10792'",
+      "valid_values": []
+    },
+    {
+      "key": "36839",
+      "name": "36839",
+      "desc": "来自表格列 '36839'",
+      "valid_values": []
+    },
+    {
+      "key": "1591",
+      "name": "1591",
+      "desc": "来自表格列 '1591'",
+      "valid_values": []
+    },
+    {
+      "key": "tcell4875nkcell186macrophage1746monocyte1335megakaryocyte124plasma037hematopoieticstemcell024",
+      "name": "T cell(48.75%),NK cell(18.6%),Macrophage(17.46%),Monocyte(13.35%),Megakaryocyte(1.24%),Plasma(0.37%),Hematopoietic stem cell(0.24%)",
+      "desc": "来自表格列 'T cell(48.75%),NK cell(18.6%),Macrophage(17.46%),Monocyte(13.35%),Megakaryocyte(1.24%),Plasma(0.37%),Hematopoietic stem cell(0.24%)'",
       "valid_values": []
     }
   ]

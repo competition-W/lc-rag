@@ -1,32 +1,26 @@
 {
   "market": [
     {
-      "key": "col_chan_pin",
-      "name": "col_chan_pin",
-      "desc": "来自表格列 'col_chan_pin'",
-      "source_table": "sample_preparation",
+      "key": "product_level1",
+      "name": "产品一级目录",
+      "desc": "来自表格列 '产品一级目录'",
       "valid_values": [
-        "产品一级目录",
         "单细胞空间组学"
       ]
     },
     {
-      "key": "col_chan_pin_1",
-      "name": "col_chan_pin_1",
-      "desc": "来自表格列 'col_chan_pin_1'",
-      "source_table": "sample_preparation",
+      "key": "product_level2",
+      "name": "产品二级目录",
+      "desc": "来自表格列 '产品二级目录'",
       "valid_values": [
-        "产品二级目录",
         "单细胞测序"
       ]
     },
     {
-      "key": "col_chan_pin_2",
-      "name": "col_chan_pin_2",
-      "desc": "来自表格列 'col_chan_pin_2'",
-      "source_table": "sample_preparation",
+      "key": "product_level3",
+      "name": "产品三级目录",
+      "desc": "来自表格列 '产品三级目录'",
       "valid_values": [
-        "产品三级目录",
         "单细胞转录组",
         "单细胞转录组（抽核）",
         "单细胞免疫组",
@@ -35,12 +29,10 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei",
-      "name": "col_yang_ben_zhun_bei",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei'",
-      "source_table": "sample_preparation",
+      "key": "sample_category_prep",
+      "name": "样本大类",
+      "desc": "来自表格列 '样本大类'",
       "valid_values": [
-        "样本大类",
         "实体组织类样本",
         "液体类样本",
         "细胞类样本",
@@ -49,31 +41,26 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_1",
-      "name": "col_yang_ben_zhun_bei_1",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_1'",
-      "source_table": "sample_preparation",
+      "key": "sample_type_prep",
+      "name": "样本类型",
+      "desc": "来自表格列 '样本类型'",
       "valid_values": [
-        "样本类型",
-        "新鲜实体组织",
         "液体类样本",
-        "细胞类样本",
-        "类器官类样本",
         "冻存组织",
-        "植物类样本",
         "石蜡包埋组织",
         "固定的新鲜组织",
-        "固定的细胞",
-        "固定的细胞核"
+        "固定的细胞核",
+        "新鲜实体组织",
+        "类器官类样本",
+        "细胞类样本",
+        "固定的细胞"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_2",
-      "name": "col_yang_ben_zhun_bei_2",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_2'",
-      "source_table": "sample_preparation",
+      "key": "tissue_type_prep",
+      "name": "组织类型",
+      "desc": "来自表格列 '组织类型'",
       "valid_values": [
-        "组织类型",
         "肿瘤",
         "心脏",
         "肝脏",
@@ -118,23 +105,19 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_3",
-      "name": "col_yang_ben_zhun_bei_3",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_3'",
-      "source_table": "sample_preparation",
+      "key": "sample_prep_method",
+      "name": "样本处理方式",
+      "desc": "来自表格列 '样本处理方式'",
       "valid_values": [
-        "样本处理方式",
         "解离",
         "抽核"
       ]
     },
     {
-      "key": "unnamed7",
-      "name": "unnamed7",
-      "desc": "来自表格列 'unnamed7'",
-      "source_table": "sample_preparation",
+      "key": "recommended_amount_1",
+      "name": "建议送样量1",
+      "desc": "来自表格列 '建议送样量1'",
       "valid_values": [
-        "建议送样量",
         "风险：约20mg；\n",
         "风险：约20mg；",
         "不合格：约250mg；",
@@ -154,12 +137,10 @@
       ]
     },
     {
-      "key": "unnamed8",
-      "name": "unnamed8",
-      "desc": "来自表格列 'unnamed8'",
-      "source_table": "sample_preparation",
+      "key": "recommended_amount_2",
+      "name": "建议送样量2",
+      "desc": "来自表格列 '建议送样量2'",
       "valid_values": [
-        "建议送样量",
         "\n合格：约50mg；\n\n",
         "合格：约50mg；",
         "风险：约350mg；",
@@ -183,12 +164,10 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_4",
-      "name": "col_yang_ben_zhun_bei_4",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_4'",
-      "source_table": "sample_preparation",
+      "key": "recommended_amount_3",
+      "name": "建议送样量3",
+      "desc": "来自表格列 '建议送样量3'",
       "valid_values": [
-        "建议送样量",
         "合格：约250mg；\n",
         "合格：约250mg；",
         "合格：约800mg；",
@@ -210,12 +189,10 @@
       ]
     },
     {
-      "key": "unnamed10",
-      "name": "unnamed10",
-      "desc": "来自表格列 'unnamed10'",
-      "source_table": "sample_preparation",
+      "key": "qualitative_description_1",
+      "name": "定性描述1",
+      "desc": "来自表格列 '定性描述1'",
       "valid_values": [
-        "定性描述（穿刺几条、绿豆/黄豆大小几颗、液体多少mL等）",
         "风险：大米大小；",
         "不合格：一个食指指甲盖大小（1×1cm）；",
         "不合格：大米粒大小；",
@@ -231,12 +208,10 @@
       ]
     },
     {
-      "key": "unnamed11",
-      "name": "unnamed11",
-      "desc": "来自表格列 'unnamed11'",
-      "source_table": "sample_preparation",
+      "key": "qualitative_description_2",
+      "name": "定性描述2",
+      "desc": "来自表格列 '定性描述2'",
       "valid_values": [
-        "定性描述（穿刺几条、绿豆/黄豆大小几颗、液体多少mL等）",
         "合格：绿豆大小；",
         "风险：一个大拇指指甲盖大小（1.5×1.5cm）；",
         "风险：绿豆大小；",
@@ -253,12 +228,10 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_5",
-      "name": "col_yang_ben_zhun_bei_5",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_5'",
-      "source_table": "sample_preparation",
+      "key": "qualitative_description_3",
+      "name": "定性描述3",
+      "desc": "来自表格列 '定性描述3'",
       "valid_values": [
-        "定性描述（穿刺几条、绿豆/黄豆大小几颗、液体多少mL等）",
         "合格：黄豆大小；",
         "合格：两个大拇指指甲盖大小（2×2cm）；",
         "合格：黄豆大小（2月龄成年小鼠半脑的一半）；",
@@ -274,75 +247,138 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_6",
-      "name": "col_yang_ben_zhun_bei_6",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_6'",
-      "source_table": "sample_preparation",
+      "key": "rin_score",
+      "name": "质检标准_RIN",
+      "desc": "来自表格列 '质检标准_RIN'",
       "valid_values": [
-        "质检标准",
-        "/",
+        "8.5",
+        "DV200：≥30%",
+        "8.9",
+        "7.9",
+        "8.0",
+        "8.4",
+        "7.5",
+        "8.8",
+        "8.3",
+        "9.9",
+        "9.0",
+        "6.5",
+        "6.0",
+        "7.8",
         "RIN≥7",
-        "DV200：≥30%"
+        "7.3",
+        "9.4",
+        "7.2",
+        "9.7",
+        "9.6",
+        "8.2",
+        "9.5",
+        "6.1",
+        "5.6",
+        "6.7",
+        "8.1",
+        "9.8",
+        "9.2",
+        "/",
+        "9.3",
+        "8.7",
+        "7.1",
+        "7.7",
+        "10.0",
+        "8.6",
+        "9.1"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_7",
-      "name": "col_yang_ben_zhun_bei_7",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_7'",
-      "source_table": "sample_preparation",
+      "key": "cell_viability_percent",
+      "name": "质检标准_细胞活率",
+      "desc": "来自表格列 '质检标准_细胞活率'",
       "valid_values": [
-        "质检标准",
+        "0.7",
+        "0.8",
+        "0.5",
+        "0.9",
+        "0.98",
+        "0.94",
+        "0.99",
+        "0.89",
+        "0.01",
+        "0.86",
+        "0.83",
+        "0.65",
+        "0.87",
+        "0.82",
+        "0.33",
+        "0.96",
+        "0.97",
+        "0.93",
+        "0.91",
+        "0.72",
+        "0.73",
+        "0.71",
+        "0.67",
+        "0.78",
+        "0.03",
+        "0.95",
+        "0.02",
+        "0.74",
+        "0.76",
+        "0.62",
+        "0.0",
+        "0.81",
+        "细胞核活率：≤5%",
+        "0.43",
+        "0.84",
+        "0.85",
+        "0.56",
         "细胞活率：≥85%",
-        "细胞核活率：≤5%"
+        "0.75",
+        "0.79",
+        "0.58",
+        "0.77",
+        "0.88",
+        "0.92",
+        "0.64",
+        "1.0"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_8",
-      "name": "col_yang_ben_zhun_bei_8",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_8'",
-      "source_table": "sample_preparation",
+      "key": "cell_count",
+      "name": "质检标准_细胞总量",
+      "desc": "来自表格列 '质检标准_细胞总量'",
       "valid_values": [
-        "质检标准",
         "细胞总量：≥5万"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_9",
-      "name": "col_yang_ben_zhun_bei_9",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_9'",
-      "source_table": "sample_preparation",
+      "key": "live_cell_concentration",
+      "name": "质检标准_活细胞浓度",
+      "desc": "来自表格列 '质检标准_活细胞浓度'",
       "valid_values": [
-        "质检标准",
         "活细胞浓度：500~1500 cells /μL"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_10",
-      "name": "col_yang_ben_zhun_bei_10",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_10'",
-      "source_table": "sample_preparation",
+      "key": "clustering_rate",
+      "name": "质检标准_结团率",
+      "desc": "来自表格列 '质检标准_结团率'",
       "valid_values": [
-        "质检标准",
         "结团率：≤25%"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_11",
-      "name": "col_yang_ben_zhun_bei_11",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_11'",
-      "source_table": "sample_preparation",
+      "key": "nucleated_rate_percent",
+      "name": "质检标准_有核率",
+      "desc": "来自表格列 '质检标准_有核率'",
       "valid_values": [
-        "质检标准",
         "有核率：≥70%"
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_12",
-      "name": "col_yang_ben_zhun_bei_12",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_12'",
-      "source_table": "sample_preparation",
+      "key": "sample_preparation_method_doc",
+      "name": "样本准备方法",
+      "desc": "来自表格列 '样本准备方法'",
       "valid_values": [
-        "样本准备方法",
         "实体组织送样方法sop",
         "液体类样本送样方法sop",
         "细胞类样本送样方法sop",
@@ -354,21 +390,16 @@
       ]
     },
     {
-      "key": "col_yang_ben_zhun_bei_13",
-      "name": "col_yang_ben_zhun_bei_13",
-      "desc": "来自表格列 'col_yang_ben_zhun_bei_13'",
-      "source_table": "sample_preparation",
-      "valid_values": [
-        "取样送样的注意事项"
-      ]
+      "key": "sampling_notes",
+      "name": "取样送样的注意事项",
+      "desc": "来自表格列 '取样送样的注意事项'",
+      "valid_values": []
     },
     {
-      "key": "unnamed21",
-      "name": "unnamed21",
-      "desc": "来自表格列 'unnamed21'",
-      "source_table": "sample_preparation",
+      "key": "notes_full_text",
+      "name": "备注",
+      "desc": "来自表格列 '备注'",
       "valid_values": [
-        "备注",
         "风险：可以尝试，细胞量接近上机捕获极限，坏死类组织需根据坏死部位占比来提高送样量；\n合格：可以尝试，细胞量一般可满足上机要求，坏死类组织需根据坏死部位占比来提高送样量；\n合格：细胞量完全足够，满足上机捕获要求，坏死类组织需根据坏死部位占比来提高送样量；",
         "不合格：可以尝试，细胞量接近上机捕获极限，坏死类组织需根据坏死部位占比来提高送样量；\n风险：可以尝试，细胞量一般可满足上机要求，坏死类组织需根据坏死部位占比来提高送样量；\n合格：细胞量完全足够，满足上机捕获要求，坏死类组织需根据坏死部位占比来提高送样量；",
         "不合格：所得细胞量少，不满足上机捕获要求；\n风险：可以尝试，细胞量接近上机捕获极限，坏死类组织需根据坏死部位占比来提高送样量；\n合格：细胞量完全足够，满足上机捕获要求，坏死类组织需根据坏死部位占比来提高送样量；",
@@ -386,347 +417,196 @@
       ]
     },
     {
-      "key": "project_library_type",
-      "name": "project_library_type",
-      "desc": "来自表格列 'project_library_type'",
-      "source_table": "project_experience",
+      "key": "platform_type",
+      "name": "实验平台",
+      "desc": "来自表格列 '实验平台'",
       "valid_values": [
-        "实验平台",
-        "项目建库类型",
         "10X单细胞3‘转录本-抽核(V3试剂)",
-        "10X单细胞3'转录本-抽核(V3试剂)",
         "10X单细胞3'转录本-抽核(GEMX试剂)",
+        "10X单细胞3‘转录本(V3试剂)",
         "10X单细胞VDJ/(5'转录本CC试剂)",
         "10X单细胞3'转录本(V3试剂)",
         "华大单细胞3'转录本(解离)",
         "墨卓单细胞3‘转录本",
-        "10X单细胞3‘转录本(V3试剂)",
         "10X单细胞VDJ/(5‘转录本)",
         "10X单细胞VDJ/(5'转录本)",
         "10X单细胞TCR/(5'转录本)",
+        "10X单细胞3'转录本-抽核(V3试剂)",
         "10X单细胞BCR/(5'转录本)",
         "10X单细胞VDJ/(5'转录本)（GEMX试剂）",
         "10X单细胞TCR/(5‘转录本)",
         "10X单细胞VDJ(无需5'转录组)",
         "10X单细胞5‘转录本(无需VDJ)",
+        "华大单细胞3‘转录本(抽核)",
         "10X单细胞BCR/(5‘转录本)",
         "墨卓单细胞3'转录本（解离）",
         "华大单细胞3‘转录本(解离)",
         "华大单细胞3‘转录本",
-        "华大单细胞3‘转录本(抽核)",
         "墨卓单细胞3‘转录本（抽核）"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi",
-      "name": "col_yang_ben_xin_xi",
-      "desc": "来自表格列 'col_yang_ben_xin_xi'",
-      "source_table": "project_experience",
+      "key": "species",
+      "name": "物种",
+      "desc": "来自表格列 '物种'",
       "valid_values": [
-        "物种",
         "小鼠",
-        "人",
-        "猪",
         "大鼠",
-        "绵羊",
+        "猪",
+        "人",
         "牛",
+        "绵羊",
+        "大鼠+人",
         "蝙蝠",
         "山羊",
         "小鼠（裸鼠）",
         "羊",
-        "大鼠+人",
         "猕猴"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_1",
-      "name": "col_yang_ben_xin_xi_1",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_1'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "样本类型",
-        "冻存组织",
-        "液体类样本",
-        "新鲜实体组织",
-        "细胞类样本"
-      ]
-    },
-    {
-      "key": "unnamed3",
-      "name": "unnamed3",
-      "desc": "来自表格列 'unnamed3'",
-      "source_table": "project_experience",
+      "key": "sample_detailed_type",
+      "name": "样本详细类型",
+      "desc": "来自表格列 '样本详细类型'",
       "valid_values": []
     },
     {
-      "key": "col_yang_ben_xin_xi_2",
-      "name": "col_yang_ben_xin_xi_2",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_2'",
-      "source_table": "project_experience",
+      "key": "experiment_protocol",
+      "name": "实验方案",
+      "desc": "来自表格列 '实验方案'",
       "valid_values": [
-        "实验方案\n（解离/抽核）",
         "抽核",
         "解离"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_3",
-      "name": "col_yang_ben_xin_xi_3",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_3'",
-      "source_table": "project_experience",
+      "key": "organ_weight",
+      "name": "组织重量",
+      "desc": "来自表格列 '组织重量'",
       "valid_values": []
     },
     {
-      "key": "col_yang_ben_xin_xi_4",
-      "name": "col_yang_ben_xin_xi_4",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_4'",
-      "source_table": "project_experience",
+      "key": "organ_weight_unit",
+      "name": "组织重量单位",
+      "desc": "来自表格列 '组织重量单位'",
       "valid_values": [
-        "组织重量\n（单位）"
+        "mg",
+        "mL"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_5",
-      "name": "col_yang_ben_xin_xi_5",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_5'",
-      "source_table": "project_experience",
+      "key": "is_streaming",
+      "name": "是否流式",
+      "desc": "来自表格列 '是否流式'",
       "valid_values": [
-        "定性描述\n（几根/几条等）"
-      ]
-    },
-    {
-      "key": "col_yang_ben_xin_xi_6",
-      "name": "col_yang_ben_xin_xi_6",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_6'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "核酸质量\n（RIN值）",
-        "核酸质量（RIN）",
-        "10",
-        "9",
-        "8.2",
-        "8.8",
-        "7.8",
-        "8.9",
-        "9.6",
-        "9.1",
-        "/",
-        "7.3",
-        "8.6",
-        "8.5",
-        "7.9",
-        "8.7",
-        "7.2",
-        "7.5",
-        "7.7",
-        "8.1",
-        "7.1",
-        "8.4",
-        "9.3",
-        "9.2",
-        "9.4",
-        "9.7",
-        "6.1",
-        "8.3",
-        "6.5",
-        "6",
-        "9.5",
-        "9.8",
-        "6.7",
-        "8",
-        "5.6",
-        "9.9"
-      ]
-    },
-    {
-      "key": "col_yang_ben_xin_xi_7",
-      "name": "col_yang_ben_xin_xi_7",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_7'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "是否流式",
         "是",
         "否"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_8",
-      "name": "col_yang_ben_xin_xi_8",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_8'",
-      "source_table": "project_experience",
+      "key": "antibody_info",
+      "name": "抗体信息",
+      "desc": "来自表格列 '抗体信息'",
       "valid_values": []
     },
     {
-      "key": "col_yang_ben_xin_xi_9",
-      "name": "col_yang_ben_xin_xi_9",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_9'",
-      "source_table": "project_experience",
+      "key": "streaming_protocol",
+      "name": "流式方案",
+      "desc": "来自表格列 '流式方案'",
       "valid_values": []
     },
     {
-      "key": "col_yang_ben_xin_xi_10",
-      "name": "col_yang_ben_xin_xi_10",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_10'",
-      "source_table": "project_experience",
+      "key": "is_lysis",
+      "name": "是否裂红",
+      "desc": "来自表格列 '是否裂红'",
       "valid_values": [
-        "是否裂红",
         "否",
         "是"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_11",
-      "name": "col_yang_ben_xin_xi_11",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_11'",
-      "source_table": "project_experience",
+      "key": "is_dead_removal",
+      "name": "是否去死",
+      "desc": "来自表格列 '是否去死'",
       "valid_values": [
-        "是否去死",
         "否",
         "是"
       ]
     },
     {
-      "key": "col_yang_ben_xin_xi_12",
-      "name": "col_yang_ben_xin_xi_12",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_12'",
-      "source_table": "project_experience",
+      "key": "sampling_temperature",
+      "name": "到样温度",
+      "desc": "来自表格列 '到样温度'",
       "valid_values": [
-        "其他和数据指标挂钩的信息"
-      ]
-    },
-    {
-      "key": "col_yang_ben_xin_xi_13",
-      "name": "col_yang_ben_xin_xi_13",
-      "desc": "来自表格列 'col_yang_ben_xin_xi_13'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "到样温度\n（℃）",
-        "到样温度",
-        "-80",
-        "4",
-        "11.7",
-        "2.9",
-        "2.3",
-        "2.7",
-        "/",
-        "8.4",
-        "1.9",
-        "9.7",
-        "4.8",
-        "11.8",
-        "干冰",
-        "17",
+        "-80℃",
+        "4℃",
+        "11.7℃",
+        "2.9℃",
+        "2.3℃",
+        "2.7℃",
+        "8.4℃",
+        "1.9℃",
+        "9.7℃",
+        "3.1℃",
+        "11.8℃",
+        "17℃",
         "常温",
-        "3.1",
-        "9",
-        "1",
-        "8.8",
-        "5.4",
-        "5.8",
-        "4.7",
-        "3.6"
+        "-4℃",
+        "干冰",
+        "9℃",
+        "8.8℃",
+        "5.4℃",
+        "5.8℃",
+        "3.6℃"
       ]
     },
     {
-      "key": "col_shi_yan_zhi_biao",
-      "name": "col_shi_yan_zhi_biao",
-      "desc": "来自表格列 'col_shi_yan_zhi_biao'",
-      "source_table": "project_experience",
+      "key": "captured_cell_count",
+      "name": "捕获细胞数",
+      "desc": "来自表格列 '捕获细胞数'",
       "valid_values": []
     },
     {
-      "key": "col_shi_yan_zhi_biao_1",
-      "name": "col_shi_yan_zhi_biao_1",
-      "desc": "来自表格列 'col_shi_yan_zhi_biao_1'",
-      "source_table": "project_experience",
+      "key": "col_reads_cell",
+      "name": "reads/cell",
+      "desc": "来自表格列 'reads/cell'",
       "valid_values": []
     },
     {
-      "key": "col_shi_yan_zhi_biao_2",
-      "name": "col_shi_yan_zhi_biao_2",
-      "desc": "来自表格列 'col_shi_yan_zhi_biao_2'",
-      "source_table": "project_experience",
+      "key": "median_genes_per_cell",
+      "name": "基因中位数",
+      "desc": "来自表格列 '基因中位数'",
       "valid_values": []
     },
     {
-      "key": "col_shi_yan_zhi_biao_3",
-      "name": "col_shi_yan_zhi_biao_3",
-      "desc": "来自表格列 'col_shi_yan_zhi_biao_3'",
-      "source_table": "project_experience",
+      "key": "annotation_results",
+      "name": "人工细胞注释",
+      "desc": "来自表格列 '人工细胞注释'",
       "valid_values": []
     },
     {
-      "key": "col_shu_ju_zhi_biao",
-      "name": "col_shu_ju_zhi_biao",
-      "desc": "来自表格列 'col_shu_ju_zhi_biao'",
-      "source_table": "project_experience",
+      "key": "digestion_protocol",
+      "name": "组织消化方案",
+      "desc": "来自表格列 '组织消化方案'",
       "valid_values": []
     },
     {
-      "key": "col_shu_ju_zhi_biao_1",
-      "name": "col_shu_ju_zhi_biao_1",
-      "desc": "来自表格列 'col_shu_ju_zhi_biao_1'",
-      "source_table": "project_experience",
+      "key": "related_articles",
+      "name": "相关组织用户文章链接",
+      "desc": "来自表格列 '相关组织用户文章链接'",
       "valid_values": []
     },
     {
-      "key": "col_shu_ju_zhi_biao_2",
-      "name": "col_shu_ju_zhi_biao_2",
-      "desc": "来自表格列 'col_shu_ju_zhi_biao_2'",
-      "source_table": "project_experience",
+      "key": "feishu_doc_link",
+      "name": "飞书文档链接",
+      "desc": "来自表格列 '飞书文档链接'",
       "valid_values": []
     },
     {
-      "key": "col_shu_ju_zhi_biao_3",
-      "name": "col_shu_ju_zhi_biao_3",
-      "desc": "来自表格列 'col_shu_ju_zhi_biao_3'",
-      "source_table": "project_experience",
+      "key": "video_live_link",
+      "name": "视频直播链接",
+      "desc": "来自表格列 '视频直播链接'",
       "valid_values": []
-    },
-    {
-      "key": "col_can_kao_zi_liao",
-      "name": "col_can_kao_zi_liao",
-      "desc": "来自表格列 'col_can_kao_zi_liao'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "组织消化方案"
-      ]
-    },
-    {
-      "key": "col_can_kao_zi_liao_1",
-      "name": "col_can_kao_zi_liao_1",
-      "desc": "来自表格列 'col_can_kao_zi_liao_1'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "组织消化方案概述"
-      ]
-    },
-    {
-      "key": "col_can_kao_zi_liao_2",
-      "name": "col_can_kao_zi_liao_2",
-      "desc": "来自表格列 'col_can_kao_zi_liao_2'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "相关组织用户文章链接"
-      ]
-    },
-    {
-      "key": "col_can_kao_zi_liao_3",
-      "name": "col_can_kao_zi_liao_3",
-      "desc": "来自表格列 'col_can_kao_zi_liao_3'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "飞书文档链接"
-      ]
-    },
-    {
-      "key": "col_can_kao_zi_liao_4",
-      "name": "col_can_kao_zi_liao_4",
-      "desc": "来自表格列 'col_can_kao_zi_liao_4'",
-      "source_table": "project_experience",
-      "valid_values": [
-        "视频直播链接"
-      ]
     }
   ],
   "biology": [

@@ -1,7 +1,7 @@
 import requests
 
 # 文件路径
-file_path = r'D:\LC-BIO\lc-rag-V2\rag\test_data\20260114-单细胞时空组学标准化材料表格梳理.xlsx'
+file_path = r'D:\LC-BIO\lc-rag-V2\rag\test_data\20260127-单细胞时空组学标准化材料表格梳理v1.xlsx'
 
 # API端点
 url = 'http://127.0.0.1:8090/documents/upload'

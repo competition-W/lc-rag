@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     RERANK_TOP_N: int = 6
     
     # ==================== MinIO 配置 ====================
-    MINIO_ENDPOINT: str = "110.1.122.1:30900"
+    MINIO_ENDPOINT: str = "110.1.122.1:31900"
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_SECURE: bool = False
@@ -79,20 +79,21 @@ class Settings(BaseSettings):
     
     # ==================== Milvus 配置 ====================
     MILVUS_HOST: str = "110.1.122.1"
-    MILVUS_PORT: int = 30530
+    MILVUS_PORT: int = 31530
     MILVUS_USER: Optional[str] = None
     MILVUS_PASSWORD: Optional[str] = None
     MILVUS_EMBEDDING_DIM: int = 1024
     
     # ==================== Redis 配置 ====================
-    REDIS_HOST: str = "redis" 
+    REDIS_HOST: str = "110.1.121.104" 
+    # REDIS_HOST: str = "127.0.0.1" 
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
     
     # ==================== Celery 配置 ====================
-    CELERY_BROKER_URL: str = "redis://redis:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://redis:6379/1"
+    CELERY_BROKER_URL: str = "redis://110.1.121.104:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://110.1.121.104:6379/1"
     
     # ==================== 文档处理配置 ====================
     # 文件类型映射（扩展名 -> 文档类型）

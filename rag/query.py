@@ -199,20 +199,20 @@ def _format_node_for_llm(node_data: dict, query_text: str = "") -> str:
     
     # 定义指标分类
     experimental_metrics = [
-        "col_xbzl\n（w）", "col_jie_tuan_lv", "col_xi_bao_huo_lv", 
-        "col_you_he_lv", "col_bu_huo_xi_bao_shu", 
-        "col_zu_zhi_zhong_liang_shu_zhi", "col_zu_zhi_zhong_liang_dan_wei",
-        "col_ding_xing_miao_shu_ji_gen_ji_tiao_deng", "col_hszl\n（rinz）",
-        "col_kang_ti_xin_xi", "col_lsfxfa", "is_lysis", "is_dead_removal",
-        "storage_method", "col_liu_shi_yu_fou", "col_syfa\n（jl/ch）"
+        "total_cells_10k", "clumping_rate_percent", "cell_viability_percent", 
+        "nucleated_rate_percent", "captured_cells", 
+        "tissue_weight", "tissue_weight_unit",
+        "qualitative_description", "rin_score",
+        "antibody_info", "streaming_protocol", "is_lysis", "is_dead_removal",
+        "storage_method", "is_streaming", "experiment_protocol"
     ]
     
     data_metrics = [
-        "col_shu_ju_liang", "col_ji_yin_zhong_wei_shu", "col_zsjg_zztyxzs"
+        "reads_per_cell", "median_genes", "annotation_results"
     ]
     
     annotation_metrics = [
-        "cell_annotation_result", "col_zsjg_zztyxzs", "注释结果", "细胞注释", "cell_type", "cell_types"
+        "cell_annotation_result", "annotation_results", "注释结果", "细胞注释", "cell_type", "cell_types"
     ]
     
     sample_info = [
@@ -220,7 +220,7 @@ def _format_node_for_llm(node_data: dict, query_text: str = "") -> str:
     ]
     
     reference_materials = [
-        "col_zzxhfags", "col_xgzzyhwzlj", "col_fswdlj", "col_spzblj"
+        "digestion_protocol", "related_articles", "feishu_doc_link", "video_live_link"
     ]
     
     # 定义不需要传给 LLM 的内部技术字段
@@ -334,28 +334,27 @@ def _aggregate_numeric_metrics(context_nodes: List[Dict], query_text: str = "") 
     
     # 定义指标类型分类
     experimental_metrics = [
-        "col_zu_zhi_zhong_liang_shu_zhi", "col_xbzl\n（w）", "col_jie_tuan_lv", 
-        "col_xi_bao_huo_lv", "col_you_he_lv", "col_bu_huo_xi_bao_shu", 
-        "col_hszl\n（rinz）"
+        "tissue_weight", "total_cells_10k", "clumping_rate_percent", 
+        "cell_viability_percent", "nucleated_rate_percent", "captured_cells", 
+        "rin_score"
     ]
     
     data_metrics = [
-        "col_shu_ju_liang", "col_ji_yin_zhong_liang_shu", "col_ji_yin_zhong_wei_shu", 
-        "col_zsjg_zztyxzs"
+        "reads_per_cell", "median_genes", "annotation_results"
     ]
     
     # 定义指标名称映射，将英文列名转换为友好的中文名称
     metric_name_mapping = {
-        "col_zu_zhi_zhong_liang_shu_zhi": "组织重量",
-        "col_shu_ju_liang": "数据量",
-        "col_ji_yin_zhong_wei_shu": "基因中位数",
-        "col_xbzl\n（w）": "细胞总量",
-        "col_jie_tuan_lv": "结团率",
-        "col_xi_bao_huo_lv": "细胞活率",
-        "col_you_he_lv": "有效核率",
-        "col_bu_huo_xi_bao_shu": "捕获细胞数",
-        "col_hszl\n（rinz）": "核碎片率",
-        "col_zsjg_zztyxzs": "注释结果-组织特异性指标"
+        "tissue_weight": "组织重量",
+        "reads_per_cell": "数据量",
+        "median_genes": "基因中位数",
+        "total_cells_10k": "细胞总量",
+        "clumping_rate_percent": "结团率",
+        "cell_viability_percent": "细胞活率",
+        "nucleated_rate_percent": "有效核率",
+        "captured_cells": "捕获细胞数",
+        "rin_score": "核碎片率",
+        "annotation_results": "注释结果-组织特异性指标"
     }
     
     # 分析查询类型
@@ -372,7 +371,14 @@ def _aggregate_numeric_metrics(context_nodes: List[Dict], query_text: str = "") 
     numeric_metrics = {}
     
     for node in context_nodes:
-        meta = node.get("metadata", {})
+        if hasattr(node, 'node') and hasattr(node.node, 'metadata'):
+            meta = node.node.metadata
+        elif hasattr(node, 'metadata'):
+            meta = node.metadata
+        elif isinstance(node, dict):
+            meta = node.get("metadata", {})
+        else:
+            meta = {}
         for key, value in meta.items():
             # 根据查询类型过滤指标
             is_data_metric = key in data_metrics

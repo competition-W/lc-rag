@@ -21,141 +21,9 @@ logger = logging.getLogger(__name__)
 
 # =========================================================
 # 🔥 1. 核心定义：中英文列名映射表
-# 这是解决 Milvus 报错的关键。所有用于过滤的字段必须在此定义英文名。
+# 从公共字段映射模块导入，确保系统中使用统一的字段映射
 # =========================================================
-COLUMN_MAPPING = {
-    # === 核心字段 ===
-    "物种": "species",
-    "col_物种": "species",
-    "物种1": "species",
-    "物种2": "species",
-    "物种3": "species",
-    
-    "样本类型": "sample_type_exp",
-    "样本类型_exp": "sample_type_exp",
-    "样本大类": "sample_type_exp",
-    "col_样本类型": "sample_type_exp",
-    "col_样本类型_exp": "sample_type_exp",
-    "col_样本大类": "sample_type_exp",
-    
-    "样本详细类型": "sample_detailed_type",
-    "组织": "sample_detailed_type",
-    "组织类型": "sample_detailed_type",
-    "组织类型_prep": "sample_detailed_type",
-    "col_样本详细类型": "sample_detailed_type",
-    "col_组织": "sample_detailed_type",
-    "col_组织类型": "sample_detailed_type",
-    
-    "人工细胞注释": "annotation_results",
-    "细胞注释": "annotation_results",
-    "注释结果": "annotation_results",
-    "人工注释结果": "annotation_results",
-    "col_人工细胞注释": "annotation_results",
-    "col_细胞注释": "annotation_results",
-    "col_注释结果": "annotation_results",
-    "col_人工注释结果": "annotation_results",
-    
-    # === 实验方案 ===
-    "实验方案": "experiment_protocol",
-    "解离/抽核": "experiment_protocol",
-    "样本处理方式": "experiment_protocol",
-    "col_实验方案": "experiment_protocol",
-    "col_解离/抽核": "experiment_protocol",
-    "col_样本处理方式": "experiment_protocol",
-    
-    # === 实验平台 ===
-    "实验平台": "platform_type",
-    "平台": "platform_type",
-    "项目建库类型": "platform_type",
-    "col_实验平台": "platform_type",
-    "col_平台": "platform_type",
-    "col_项目建库类型": "platform_type",
-    
-    # === 样本保存相关 ===
-    "样本保存方案": "storage_method",
-    "样本保存方式": "storage_method",
-    "col_样本保存方案": "storage_method",
-    "col_样本保存方式": "storage_method",
-    
-    # === 处理相关 ===
-    "是否裂红": "is_lysis",
-    "col_是否裂红": "is_lysis",
-    
-    "是否去死": "is_dead_removal",
-    "col_是否去死": "is_dead_removal",
-    
-    "核酸质量": "rin_score",
-    "col_核酸质量": "rin_score",
-    
-    # === 产品信息相关 ===
-    "产品一级目录": "product_level1",
-    "产品一级": "product_level1",
-    "一级目录": "product_level1",
-    "product_level1": "product_level1",
-    
-    "产品二级目录": "product_level2",
-    "产品二级": "product_level2",
-    "二级目录": "product_level2",
-    "product_level2": "product_level2",
-    
-    "产品三级目录": "product_level3",
-    "产品三级": "product_level3",
-    "三级目录": "product_level3",
-    "product_level3": "product_level3",
-    
-    # === 样本制备信息 ===
-    "样本大类": "sample_category_prep",
-    "sample_category": "sample_category_prep",
-    "样本类别": "sample_category_prep",
-    
-    "样本类型": "sample_type_prep",
-    "sample_type": "sample_type_prep",
-    "样本类型细分": "sample_type_prep",
-    "sample_type_exp": "sample_type_prep",
-    
-    "组织类型": "tissue_type_prep",
-    "tissue_type": "tissue_type_prep",
-    "组织": "tissue_type_prep",
-    "tissue_type_prep": "tissue_type_prep",
-    "组织类型_prep": "tissue_type_prep",
-    
-    "样本处理方式": "sample_prep_method",
-    "prep_method": "sample_prep_method",
-    "实验方案": "sample_prep_method",
-    "解离/抽核": "sample_prep_method",
-    
-    # === 送样要求 ===
-    "建议送样量1": "recommended_amount_1",
-    "建议送样量2": "recommended_amount_2",
-    "建议送样量3": "recommended_amount_3",
-    
-    "定性描述1": "qualitative_description_1",
-    "定性描述2": "qualitative_description_2",
-    "定性描述3": "qualitative_description_3",
-    
-    # === 方法和注意事项 ===
-    "样本准备方法": "sample_preparation_method_doc",
-    "样本制备方法": "sample_preparation_method_doc",
-    "sample_preparation_method_doc": "sample_preparation_method_doc",
-    
-    "取样送样的注意事项": "sampling_notes",
-    "采样注意事项": "sampling_notes",
-    "注意事项": "sampling_notes",
-    "sampling_notes": "sampling_notes",
-    "handling_notes": "sampling_notes",
-    
-    "备注": "notes_full_text",
-    "完整说明": "notes_full_text",
-    "说明": "notes_full_text",
-    "notes_full_text": "notes_full_text",
-    "notes_full": "notes_full_text",
-    
-    # === 其他业务字段 ===
-    "送样日期": "sample_date",
-    "项目编号": "project_id",
-    "批次号": "batch_id",
-    "样本编号": "sample_id"
-}
+from services.common.field_mapping import COLUMN_MAPPING
 
 # 动态映射表，用于存储自动生成的映射
 DYNAMIC_COLUMN_MAPPING = {}
@@ -234,11 +102,11 @@ class ExcelProcessor(BaseDocumentProcessor):
         try:
             file_obj = io.BytesIO(file_data)
             
-            # 读取Excel
+            # 读取Excel - 使用第2行作为列名（处理多级表头）
             if sheet_name:
-                df_dict = {sheet_name: pd.read_excel(file_obj, sheet_name=sheet_name, skiprows=self.skip_rows)}
+                df_dict = {sheet_name: pd.read_excel(file_obj, sheet_name=sheet_name, header=1)}
             else:
-                df_dict = pd.read_excel(file_obj, sheet_name=None, skiprows=self.skip_rows)
+                df_dict = pd.read_excel(file_obj, sheet_name=None, header=1)
             
             # ==========================================
             # 🟢 处理重复表头：将重复的二级表头编号（如"建议送样量1"、"定性描述2"）
@@ -320,21 +188,335 @@ class ExcelProcessor(BaseDocumentProcessor):
         for idx, row in df.iterrows():
             if row.isna().all(): continue
             
-            # 1. 构建文本 (保留中文表头，方便人类阅读)
+            # 1. 构建文本 (结构化格式，方便人类阅读和检索)
             text_parts = []
             row_data = {} # 原始数据保留
+            field_mapping = {}
             
+            # 收集所有字段值 - 首先收集所有非NaN值到row_data
+            for col in columns:
+                value = row[col]
+                if not pd.isna(value):
+                    row_data[col] = value
+            
+            # 然后处理用于text和field_mapping的值
             for col in columns:
                 value = row[col]
                 if pd.isna(value): continue
                 str_value = str(value).strip()
-                if not str_value: continue
+                # 不过滤任何值，包括空字符串和"None"字符串值
                 
                 # 文本部分用中文表头: "物种: 小鼠"
                 text_parts.append(f"{col}: {str_value}")
-                row_data[col] = value
+                
+                # 2. 构建字段映射，用于结构化文本生成
+                # 特殊处理样本类型字段，根据表格名称区分
+                if col == "样本类型":
+                    # 根据表格名称区分样本类型字段
+                    if "单细胞项目经验查询" in sheet_name:
+                        milvus_key = "sample_type_exp"
+                    elif "单细胞样本类型细分" in sheet_name:
+                        milvus_key = "sample_type_prep"
+                    else:
+                        milvus_key = "sample_type_exp"
+                    logger.info(f"样本类型字段映射: {col} -> {milvus_key} = '{str_value}' (表格: {sheet_name})")
+                else:
+                    milvus_key = self._normalize_column_name(col)
+                field_mapping[milvus_key] = str_value
+                # 调试日志：记录列名映射
+                if milvus_key in ['sample_type_exp', 'sample_type_prep', 'sampling_temperature', 'cell_count', 'clustering_rate']:
+                    logger.info(f"字段映射: {col} -> {milvus_key} = '{str_value}' (类型: {type(value).__name__})")
             
-            text_content = " | ".join(text_parts)
+            # 2. 生成结构化文本
+            structured_text_parts = []
+            
+            # 直接从row_data中构建字段映射，确保包含所有非NaN值
+            direct_mapping = {}
+            for col, value in row_data.items():
+                str_value = str(value).strip()
+                # 不过滤任何值，包括空字符串和"None"字符串值
+                direct_mapping[col] = str_value
+            
+            # 从row_data中构建字段映射，确保包含所有非NaN值
+            # 优先使用预定义映射，然后使用动态映射
+            row_field_mapping = {}
+            for col, value in row_data.items():
+                str_value = str(value).strip()
+                # 只过滤空字符串，不过滤"None"字符串值，因为我们需要在后面处理
+                if not str_value: continue
+                
+                # 特殊处理样本类型字段，根据表格名称区分
+                if col == "样本类型":
+                    if "单细胞项目经验查询" in sheet_name:
+                        milvus_key = "sample_type_exp"
+                    elif "单细胞样本类型细分" in sheet_name:
+                        milvus_key = "sample_type_prep"
+                    else:
+                        milvus_key = "sample_type_exp"
+                else:
+                    milvus_key = self._normalize_column_name(col)
+                row_field_mapping[milvus_key] = str_value
+            
+            # 合并两个映射，优先使用field_mapping中的值
+            combined_mapping = {**row_field_mapping, **field_mapping}
+            
+            # 实验平台
+            if "platform_type" in combined_mapping:
+                structured_text_parts.append(f"该实验记录了单细胞平台类型为\"{combined_mapping['platform_type']}\"的样本。")
+            
+            # 样本信息
+            sample_info_parts = []
+            # 根据用户提供的对应关系，将以下字段归类到样本信息
+            if "species" in combined_mapping:
+                sample_info_parts.append(f"物种为\"{combined_mapping['species']}\"")
+            if "sample_type_exp" in combined_mapping:
+                sample_info_parts.append(f"样本类型为\"{combined_mapping['sample_type_exp']}\"")
+            elif "sample_type_prep" in combined_mapping:
+                sample_info_parts.append(f"样本类型为\"{combined_mapping['sample_type_prep']}\"")
+            if "sample_detailed_type" in combined_mapping:
+                sample_info_parts.append(f"详细类型是\"{combined_mapping['sample_detailed_type']}\"")
+            if "experiment_protocol" in combined_mapping:
+                sample_info_parts.append(f"实验方案采用\"{combined_mapping['experiment_protocol']}\"")
+            if "tissue_weight" in combined_mapping:
+                sample_info_parts.append(f"组织重量为{combined_mapping['tissue_weight']}")
+            if "tissue_weight_unit" in combined_mapping:
+                sample_info_parts.append(f"{combined_mapping['tissue_weight_unit']}")
+            if "qualitative_description" in combined_mapping:
+                sample_info_parts.append(f"定性描述为\"{combined_mapping['qualitative_description']}\"")
+            if "rin_score" in combined_mapping:
+                sample_info_parts.append(f"核酸质量RIN值为{combined_mapping['rin_score']}")
+            if "is_streaming" in combined_mapping:
+                sample_info_parts.append(f"流式检测为{combined_mapping['is_streaming']}")
+            if "antibody_info" in combined_mapping:
+                sample_info_parts.append(f"抗体信息为\"{combined_mapping['antibody_info']}\"")
+            if "streaming_protocol" in combined_mapping:
+                sample_info_parts.append(f"流式方案为\"{combined_mapping['streaming_protocol']}\"")
+            if "is_lysis" in combined_mapping:
+                sample_info_parts.append(f"裂红处理为{combined_mapping['is_lysis']}")
+            if "is_dead_removal" in combined_mapping:
+                sample_info_parts.append(f"去死处理为{combined_mapping['is_dead_removal']}")
+            
+            # 直接从direct_mapping中获取样本信息字段
+            for col, value in direct_mapping.items():
+                if "物种" in col and not any("物种为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"物种为\"{value}\"")
+                elif "样本类型" in col and not any("样本类型为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"样本类型为\"{value}\"")
+                elif "样本详细类型" in col and not any("详细类型是" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"详细类型是\"{value}\"")
+                elif "实验方案" in col and not any("实验方案采用" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"实验方案采用\"{value}\"")
+                elif "组织重量" in col and not any("组织重量为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"组织重量为{value}")
+                elif "定性描述" in col and not any("定性描述为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"定性描述为\"{value}\"")
+                elif "核酸质量" in col or "RIN值" in col:
+                    if not any("核酸质量RIN值为" in part for part in sample_info_parts):
+                        sample_info_parts.append(f"核酸质量RIN值为{value}")
+                elif "是否流式" in col and not any("流式检测为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"流式检测为{value}")
+                elif "抗体信息" in col and not any("抗体信息为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"抗体信息为\"{value}\"")
+                elif "流式方案" in col and not any("流式方案为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"流式方案为\"{value}\"")
+                elif "是否裂红" in col and not any("裂红处理为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"裂红处理为{value}")
+                elif "是否去死" in col and not any("去死处理为" in part for part in sample_info_parts):
+                    sample_info_parts.append(f"去死处理为{value}")
+            
+            # 到样温度 - 支持多种字段名
+            temp_key = None
+            if "arrival_temp_celsius" in combined_mapping:
+                temp_key = "arrival_temp_celsius"
+            elif "sampling_temperature" in combined_mapping:
+                temp_key = "sampling_temperature"
+            if temp_key:
+                # 检查是否已经包含温度单位
+                temp_value = combined_mapping[temp_key]
+                # 不过滤任何值，包括"None"字符串值
+                if "℃" in temp_value or "°C" in temp_value:
+                    sample_info_parts.append(f"到样温度为{temp_value}")
+                else:
+                    sample_info_parts.append(f"到样温度为{temp_value}℃")
+            
+            # 直接从direct_mapping中获取到样温度
+            for col, value in direct_mapping.items():
+                if "到样温度" in col:
+                    temp_value = value
+                    if "℃" in temp_value or "°C" in temp_value:
+                        if not any("到样温度" in part for part in sample_info_parts):
+                            sample_info_parts.append(f"到样温度为{temp_value}")
+                    else:
+                        if not any("到样温度" in part for part in sample_info_parts):
+                            sample_info_parts.append(f"到样温度为{temp_value}℃")
+            
+            if sample_info_parts:
+                structured_text_parts.append(f"样本信息：{', '.join(sample_info_parts)}。")
+            
+            # 实验指标
+            exp_metrics_parts = []
+            # 根据用户提供的对应关系，将以下字段归类到实验指标
+            # 细胞总量 - 支持多种字段名
+            cell_count_key = None
+            if "total_cells_10k" in combined_mapping:
+                cell_count_key = "total_cells_10k"
+            elif "cell_count" in combined_mapping:
+                cell_count_key = "cell_count"
+            if cell_count_key:
+                cell_count_value = combined_mapping[cell_count_key]
+                # 不过滤任何值，包括"None"字符串值
+                exp_metrics_parts.append(f"细胞总量{cell_count_value}万")
+            
+            # 直接从direct_mapping中获取细胞总量
+            for col, value in direct_mapping.items():
+                if "细胞总量" in col:
+                    cell_count_value = value
+                    if not any("细胞总量" in part for part in exp_metrics_parts):
+                        exp_metrics_parts.append(f"细胞总量{cell_count_value}万")
+            
+            # 结团率 - 支持多种字段名
+            clustering_rate_key = None
+            if "clumping_rate_percent" in combined_mapping:
+                clustering_rate_key = "clumping_rate_percent"
+            elif "clustering_rate" in combined_mapping:
+                clustering_rate_key = "clustering_rate"
+            if clustering_rate_key:
+                clustering_rate_value = combined_mapping[clustering_rate_key]
+                # 不过滤任何值，包括"None"字符串值
+                exp_metrics_parts.append(f"结团率{clustering_rate_value}%")
+            
+            # 直接从direct_mapping中获取结团率
+            for col, value in direct_mapping.items():
+                if "结团率" in col:
+                    clustering_rate_value = value
+                    if not any("结团率" in part for part in exp_metrics_parts):
+                        exp_metrics_parts.append(f"结团率{clustering_rate_value}%")
+            
+            # 细胞活率
+            if "cell_viability_percent" in combined_mapping:
+                exp_metrics_parts.append(f"细胞活率{combined_mapping['cell_viability_percent']}%")
+            # 直接从direct_mapping中获取细胞活率
+            for col, value in direct_mapping.items():
+                if "细胞活率" in col and not any("细胞活率" in part for part in exp_metrics_parts):
+                    exp_metrics_parts.append(f"细胞活率{value}%")
+            
+            # 有核率
+            if "nucleated_rate_percent" in combined_mapping:
+                exp_metrics_parts.append(f"有核率{combined_mapping['nucleated_rate_percent']}%")
+            # 直接从direct_mapping中获取有核率
+            for col, value in direct_mapping.items():
+                if "有核率" in col and not any("有核率" in part for part in exp_metrics_parts):
+                    exp_metrics_parts.append(f"有核率{value}%")
+            
+            if exp_metrics_parts:
+                structured_text_parts.append(f"实验指标：{', '.join(exp_metrics_parts)}。")
+            
+            # 数据指标
+            data_metrics_parts = []
+            # 根据用户提供的对应关系，将以下字段归类到数据指标
+            # 捕获细胞数
+            if "captured_cells" in combined_mapping:
+                data_metrics_parts.append(f"捕获细胞数{combined_mapping['captured_cells']}")
+            # 直接从direct_mapping中获取捕获细胞数
+            for col, value in direct_mapping.items():
+                if "捕获细胞数" in col and not any("捕获细胞数" in part for part in data_metrics_parts):
+                    data_metrics_parts.append(f"捕获细胞数{value}")
+            
+            # 平均reads/cell
+            if "reads_per_cell" in combined_mapping:
+                data_metrics_parts.append(f"平均reads/cell为{combined_mapping['reads_per_cell']}")
+            # 直接从direct_mapping中获取reads/cell
+            for col, value in direct_mapping.items():
+                if "reads/cell" in col and not any("平均reads/cell为" in part for part in data_metrics_parts):
+                    data_metrics_parts.append(f"平均reads/cell为{value}")
+            
+            # 基因中位数
+            if "median_genes" in combined_mapping:
+                data_metrics_parts.append(f"基因中位数为{combined_mapping['median_genes']}")
+            # 直接从direct_mapping中获取基因中位数
+            for col, value in direct_mapping.items():
+                if "基因中位数" in col and not any("基因中位数为" in part for part in data_metrics_parts):
+                    data_metrics_parts.append(f"基因中位数为{value}")
+            
+            # 人工注释结果
+            if "annotation_results" in combined_mapping:
+                data_metrics_parts.append(f"人工细胞注释为：{combined_mapping['annotation_results']}")
+            # 直接从direct_mapping中获取人工细胞注释
+            for col, value in direct_mapping.items():
+                if "人工细胞注释" in col and not any("人工细胞注释为" in part for part in data_metrics_parts):
+                    data_metrics_parts.append(f"人工细胞注释为：{value}")
+            
+            if data_metrics_parts:
+                structured_text_parts.append(f"数据指标：{', '.join(data_metrics_parts)}。")
+            
+            # 参考资料
+            ref_parts = []
+            # 根据用户提供的对应关系，将以下字段归类到参考资料
+            if "digestion_protocol" in combined_mapping:
+                ref_parts.append(f"组织消化方案为\"{combined_mapping['digestion_protocol']}\"")
+            elif "tissue_digestion_protocol_name" in combined_mapping:
+                ref_parts.append(f"组织消化方案为\"{combined_mapping['tissue_digestion_protocol_name']}\"")
+            # 直接从direct_mapping中获取组织消化方案
+            for col, value in direct_mapping.items():
+                if "组织消化方案" in col and not any("组织消化方案为" in part for part in ref_parts):
+                    ref_parts.append(f"组织消化方案为\"{value}\"")
+            
+            if "related_articles" in combined_mapping:
+                ref_parts.append(f"相关文章链接为{combined_mapping['related_articles']}")
+            elif "related_article_link" in combined_mapping:
+                ref_parts.append(f"相关文章链接为{combined_mapping['related_article_link']}")
+            # 直接从direct_mapping中获取相关文章链接
+            for col, value in direct_mapping.items():
+                if "相关组织用户文章链接" in col and not any("相关文章链接为" in part for part in ref_parts):
+                    ref_parts.append(f"相关文章链接为{value}")
+            
+            if "feishu_doc_link" in combined_mapping:
+                ref_parts.append(f"飞书文档链接为{combined_mapping['feishu_doc_link']}")
+            # 直接从direct_mapping中获取飞书文档链接
+            for col, value in direct_mapping.items():
+                if "飞书文档链接" in col and not any("飞书文档链接为" in part for part in ref_parts):
+                    ref_parts.append(f"飞书文档链接为{value}")
+            
+            if "video_live_link" in combined_mapping:
+                ref_parts.append(f"视频直播链接为{combined_mapping['video_live_link']}")
+            elif "video_stream_link" in combined_mapping:
+                ref_parts.append(f"视频直播链接为{combined_mapping['video_stream_link']}")
+            # 直接从direct_mapping中获取视频直播链接
+            for col, value in direct_mapping.items():
+                if "视频直播链接" in col and not any("视频直播链接为" in part for part in ref_parts):
+                    ref_parts.append(f"视频直播链接为{value}")
+            
+            if ref_parts:
+                structured_text_parts.append(f"参考资料：{', '.join(ref_parts)}。")
+            
+            # 生成最终文本
+            if structured_text_parts:
+                # 添加所有未在结构化文本中包含的字段
+                # 收集已在结构化文本中包含的字段名
+                included_fields = set()
+                for part in structured_text_parts:
+                    # 简单提取字段名（这只是一个近似方法，实际可能需要更复杂的解析）
+                    if "：" in part:
+                        field_part = part.split("：")[0]
+                        included_fields.add(field_part)
+                
+                # 添加未包含的字段
+                additional_parts = []
+                for col, value in row_data.items():
+                    str_value = str(value).strip()
+                    if not str_value or str_value == "None":
+                        continue
+                    if col not in included_fields:
+                        additional_parts.append(f"{col}: {str_value}")
+                
+                # 合并结构化文本和额外字段
+                if additional_parts:
+                    text_content = "\n".join(structured_text_parts + ["其他信息：" + "， ".join(additional_parts) + "。"])
+                else:
+                    text_content = "\n".join(structured_text_parts)
+            else:
+                # 回退到原始格式
+                text_content = " | ".join(text_parts)
             
             # 2. 构建 Metadata (🔥 必须使用转换后的英文Key)
             clean_metadata = {
@@ -351,12 +533,25 @@ class ExcelProcessor(BaseDocumentProcessor):
             for col in columns:
                 if pd.isna(row[col]): continue
                 
-                # 🔥 调用转换函数：中文 -> 英文
-                milvus_key = self._normalize_column_name(col)
                 milvus_value = str(row[col]).strip()
+                # 不过滤任何值，包括空字符串和"None"字符串值
                 
-                if milvus_value:
-                    clean_metadata[milvus_key] = milvus_value
+                # 特殊处理样本类型字段，根据表格名称区分
+                if col == "样本类型":
+                    # 根据表格名称区分样本类型字段
+                    if "单细胞项目经验查询" in sheet_name:
+                        milvus_key = "sample_type_exp"
+                    elif "单细胞样本类型细分" in sheet_name:
+                        milvus_key = "sample_type_prep"
+                    else:
+                        milvus_key = "sample_type_exp"
+                    logger.info(f"样本类型字段映射 (metadata): {col} -> {milvus_key} = '{milvus_value}' (表格: {sheet_name})")
+                else:
+                    # 🔥 调用转换函数：中文 -> 英文
+                    milvus_key = self._normalize_column_name(col)
+                
+                # 直接添加字段，因为我们已经在 COLUMN_MAPPING 中统一了映射关系
+                clean_metadata[milvus_key] = milvus_value
             
             # 3. 创建 Node
             node = TextNode(
@@ -406,6 +601,9 @@ class ExcelProcessor(BaseDocumentProcessor):
         # 5. 优先使用预定义映射表 (Map "物种" -> "species")
         if clean_col in COLUMN_MAPPING:
             return COLUMN_MAPPING[clean_col]
+        # 特殊处理 reads/cell 字段
+        if raw_col == "reads/cell":
+            return "reads_per_cell"
         
         # 6. 检查动态映射表，优先使用清理后的列名，避免特殊字符问题
         global DYNAMIC_COLUMN_MAPPING
@@ -485,6 +683,10 @@ class ExcelProcessor(BaseDocumentProcessor):
                 # 🔥 获取英文 Key
                 norm_key = self._normalize_column_name(col)
                 
+                # 清理列名用于显示
+                clean_col = str(col).strip()
+                clean_col = re.sub(r'[\n\r\t]', '', clean_col)
+                
                 unique_values = df[col].dropna().unique()
                 
                 # 对于组织类型（tissue）字段，放宽唯一值数量限制
@@ -500,8 +702,8 @@ class ExcelProcessor(BaseDocumentProcessor):
                 if norm_key not in schema_map:
                     schema_map[norm_key] = {
                         "key": norm_key,       # species
-                        "name": str(col),      # 物种 (保留中文名给前端展示/LLM理解)
-                        "desc": f"来自表格列 '{col}'",
+                        "name": clean_col,      # 清理后的中文名给前端展示/LLM理解
+                        "desc": f"来自表格列 '{clean_col}'",
                         "valid_values": valid_values
                     }
                 else:

@@ -4,12 +4,12 @@ import asyncio
 from celery import Task
 from llama_index.core.schema import TextNode
 from llama_index.core import Settings
-from rag.llm.get_embedding import get_embed_model 
-from rag.tasks.celery_app import celery_app
-from rag.services.minio_client import minio_client
-from rag.services.processors.factory import DocumentProcessorFactory
-from rag.services.milvus_manager import milvus_manager
-from rag.utils.logger import logger
+from llm.get_embedding import get_embed_model 
+from tasks.celery_app import celery_app
+from services.minio_client import minio_client
+from services.processors.factory import DocumentProcessorFactory
+from services.milvus_manager import milvus_manager
+from utils.logger import logger
 
 class DocumentTask(Task):
     """Celery任务基类"""

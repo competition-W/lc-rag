@@ -104,7 +104,7 @@ from utils.logger import logger
 from utils.auth import get_auth_context, AuthContext
 
 # ✅ 4. 引入业务服务
-from services.query_parser import parse_user_query
+from services.intent_detector import intent_detector
 from services.query_service import unified_query_service
 
 # 引入WebSocket连接管理器
@@ -132,10 +132,10 @@ async def smart_search(
     RAG 智能检索接口
     """
     try:
-        # ================= Step 1: 意图理解 (Parser) =================
-        # 调用 services.query_parser
-        # parse_user_query 返回 (搜索关键词, 过滤条件字典, 意图类型)
-        real_query, extracted_filters, intent = await parse_user_query(request.text, auth)
+        # ================= Step 1: 意图理解 (Detector) =================
+        # 调用 services.intent_detector
+        # intent_detector.parse_query 返回 (搜索关键词, 过滤条件字典, 意图类型, 解析后的查询结果)
+        real_query, extracted_filters, intent, parsed_query = intent_detector.parse_query(request.text, auth)
         
         logger.info(f"🧠 [API] 初步意图: 提取词='{real_query}' | Filters={extracted_filters} | Intent={intent}")
 
@@ -160,7 +160,8 @@ async def smart_search(
             column_filters=extracted_filters,
             llm_top_k=5,       # 传给 LLM 的上下文条数
             semantic_top_k=10,  # 语义检索初筛条数
-            intent=intent       # 传递识别出的意图
+            intent=intent,      # 传递识别出的意图
+            parsed_query=parsed_query  # 传递已解析的查询结果，避免重复意图识别
         )
         
         # ================= Step 3: 数据清洗与组装 =================
@@ -215,8 +216,8 @@ async def streaming_search(
         if not websocket:
             return error(message="WebSocket连接不存在或已关闭", code=400)
         
-        # ================= Step 1: 意图理解 (Parser) =================
-        real_query, extracted_filters, intent = await parse_user_query(request.text, auth)
+        # ================= Step 1: 意图理解 (Detector) =================
+        real_query, extracted_filters, intent, parsed_query = intent_detector.parse_query(request.text, auth)
         
         logger.info(f"🧠 [Streaming API] 初步意图: 提取词='{real_query}' | Filters={extracted_filters} | Intent={intent}")
 
@@ -236,7 +237,8 @@ async def streaming_search(
             llm_top_k=5,
             semantic_top_k=10,
             intent=intent,
-            websocket=websocket  # 传递WebSocket连接，启用流式输出
+            websocket=websocket,  # 传递WebSocket连接，启用流式输出
+            parsed_query=parsed_query  # 传递已解析的查询结果，避免重复意图识别
         )
         
         # ================= Step 3: 数据组装 =================

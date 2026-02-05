@@ -237,6 +237,8 @@ if prompt := st.chat_input("请输入问题，例如：帮我找小鼠心脏的�
                     
                     # 获取数据，无论HTTP请求结果如何
                     data = res_json.get("data", {})
+                    if data is None:
+                        data = {}
                     intent = data.get("intent", {})
                     sources = data.get("sources", [])
                     all_rows = data.get("all_rows", [])
@@ -245,7 +247,18 @@ if prompt := st.chat_input("请输入问题，例如：帮我找小鼠心脏的�
                     # 只有在请求成功或WebSocket完成后，才显示最终结果
                     if res_json.get("code") == 200:
                         status_placeholder.empty()
-                        st.success(f"✅ 耗时: {time_cost:.2f}s | 命中数据: {len(all_rows)} 条")
+                        # 提取token统计信息
+                        token_stats = data.get("token_stats", {})
+                        # 处理嵌套的token_stats结构
+                        llm_stats = token_stats.get("llm", {})
+                        total_input_tokens = llm_stats.get("total_input_tokens", 0)
+                        total_output_tokens = llm_stats.get("total_output_tokens", 0)
+                        total_tokens = total_input_tokens + total_output_tokens
+                        # 显示结果状态
+                        st.success(f"✅ 耗时: {time_cost:.2f}s | 命中数据: {len(all_rows)} 条 | 总Tokens: {total_tokens}")
+                        # 显示详细token信息
+                        if llm_stats:
+                            st.info(f"📊 Token使用情况: 提示词 {total_input_tokens} | 回答 {total_output_tokens} | 总计 {total_tokens}")
                         
                         # ----------------- 检索结果展示 -----------------
                         st.markdown(f"#### 📊 检索到的所有数据 ({len(all_rows)} 条)")
@@ -367,6 +380,8 @@ if prompt := st.chat_input("请输入问题，例如：帮我找小鼠心脏的�
                     # 提取核心数据
                     if res_json.get("code") == 200:
                         data = res_json.get("data", {})
+                        if data is None:
+                            data = {}
                         answer = data.get("answer", "未生成回答")
                         intent = data.get("intent", {})
                         sources = data.get("sources", [])
@@ -374,9 +389,18 @@ if prompt := st.chat_input("请输入问题，例如：帮我找小鼠心脏的�
                         logger.info(f"📊 检索结果统计: 命中 {len(all_rows)} 条数据")
                         
                         status_placeholder.empty()  # 清除"正在加载"
-                        
+                        # 提取token统计信息
+                        token_stats = data.get("token_stats", {})
+                        # 处理嵌套的token_stats结构
+                        llm_stats = token_stats.get("llm", {})
+                        total_input_tokens = llm_stats.get("total_input_tokens", 0)
+                        total_output_tokens = llm_stats.get("total_output_tokens", 0)
+                        total_tokens = total_input_tokens + total_output_tokens
                         # ----------------- A. 展示 LLM 回答 -----------------
-                        st.success(f"✅ 耗时: {time_cost:.2f}s | 命中数据: {len(all_rows)} 条")
+                        st.success(f"✅ 耗时: {time_cost:.2f}s | 命中数据: {len(all_rows)} 条 | 总Tokens: {total_tokens}")
+                        # 显示详细token信息
+                        if llm_stats:
+                            st.info(f"📊 Token使用情况: 提示词 {total_input_tokens} | 回答 {total_output_tokens} | 总计 {total_tokens}")
                         if use_llm:
                             st.markdown("### 🤖 AI 回答")
                             st.markdown(answer)
